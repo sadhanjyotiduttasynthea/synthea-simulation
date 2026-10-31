@@ -273,3 +273,6 @@ without paid services.
 - See the end of this file (updated after each push).
 
 - `af165dc` — Milestone 9 (pushed to `origin/development`, verified with `git ls-remote`; 33 pytest, 8 vitest, 16/16 E2E passing).
+
+## Latest verified commit (phase 2)
+- `146c7f6` — R9 pushed to `origin/development` (58 pytest, 12 vitest, 14/14 E2E; Linux release package launched successfully).
