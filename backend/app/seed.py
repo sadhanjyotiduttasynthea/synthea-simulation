@@ -218,7 +218,49 @@ def demo_process_flow() -> dict:
     }
 
 
+LEGACY_PROJECT = "demo-pea-snack"
+LEGACY_INGREDIENT = "pea-protein-isolate"
+
+
+def migrate_legacy() -> dict:
+    """Upgrade databases created before the faba bean change (idempotent).
+
+    * adds missing standard ingredients (FBPI, FBPC, ...) without touching edited existing ones;
+    * removes the old demonstration project and its formulations, flows and experiments;
+    * removes the old pea isolate ingredient (and its migrated library material) when no remaining
+      formulation uses it; otherwise marks it unavailable so user formulations keep working.
+    """
+    out = {"added_ingredients": [], "removed_project": False, "legacy_ingredient": None}
+    for ing in ingredients():
+        if not db.get_doc("ingredients", ing["id"]):
+            db.put_doc("ingredients", ing)
+            out["added_ingredients"].append(ing["id"])
+    if db.get_doc("projects", LEGACY_PROJECT):
+        for c in ("formulations", "experiments", "process_flows", "twins", "process_runs"):
+            db.delete_where_project(c, LEGACY_PROJECT)
+        db.delete_doc("projects", LEGACY_PROJECT)
+        out["removed_project"] = True
+    old = db.get_doc("ingredients", LEGACY_INGREDIENT)
+    if old:
+        used = any(l.get("ingredient_id") == LEGACY_INGREDIENT for f in db.list_docs("formulations") for l in f.get("lines", []))
+        if used:
+            if old.get("available", True):
+                old["available"] = False
+                old["name"] = old["name"] + " (legacy — replace with a faba bean ingredient)"
+                db.put_doc("ingredients", old)
+            out["legacy_ingredient"] = "kept (used by a formulation), marked unavailable"
+        else:
+            db.delete_doc("ingredients", LEGACY_INGREDIENT)
+            mid = f"mat-{LEGACY_INGREDIENT}"
+            for p in db.list_children("properties", mid):
+                db.delete_doc("properties", p["id"])
+            db.delete_doc("materials", mid)
+            out["legacy_ingredient"] = "removed"
+    return out
+
+
 def seed(force: bool = False):
+    migrate_legacy()
     if db.count("ingredients") == 0 or force:
         for ing in ingredients():
             db.put_doc("ingredients", ing)

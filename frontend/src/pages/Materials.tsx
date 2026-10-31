@@ -1,5 +1,6 @@
 import { Copy, Download, Plus, Save, Search, Trash2, Upload } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Alert, Badge, Button, Field, Input, NumInput, PageHeader, Panel, Prov, Select, Tabs, cx, inputCls } from '../components/ui'
 import { api, download, readFile } from '../lib/api'
 import { fmt, toCsv } from '../lib/format'
@@ -47,6 +48,11 @@ export default function Materials() {
   const [tab, setTab] = useState<Tab>('general')
   const [saving, setSaving] = useState(false)
   const isNew = draft !== null && !draft.id
+  const [qp, setQp] = useSearchParams()
+  // /materials?new=1 (e.g. from the Formulation page) opens an empty ingredient form
+  useEffect(() => {
+    if (qp.get('new')) { setSelId(null); setQp({}, { replace: true }); setTimeout(() => { setDraft(blank()); setTab('general') }, 0) }  // after the selection effect
+  }, [qp, setQp])
 
   const sel = ingredients.find((i) => i.id === selId) ?? null
   useEffect(() => {

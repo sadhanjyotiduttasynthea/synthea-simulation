@@ -112,7 +112,8 @@ export default function Formulation() {
               </button>
             ))}
           </Panel>
-          <Panel title="Ingredient library" bodyClass="p-0 flex min-h-0 flex-1 flex-col" className="flex min-h-0 flex-1 flex-col">
+          <Panel title="Ingredient library" bodyClass="p-0 flex min-h-0 flex-1 flex-col" className="flex min-h-0 flex-1 flex-col"
+            actions={<Button size="sm" onClick={() => nav('/materials?new=1')} title="Create your own ingredient (composition, price, provenance) in the Materials table"><Plus className="h-3.5 w-3.5" />New ingredient</Button>}>
             <div className="relative border-b border-neutral-200 p-2 dark:border-neutral-800">
               <Search className="absolute left-4 top-3.5 h-3.5 w-3.5 text-neutral-400" />
               <input className={cx(inputCls, 'w-full pl-7')} placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} />

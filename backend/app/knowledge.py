@@ -355,9 +355,6 @@ def renormalise_all():
 def ensure_seeded():
     """Data migration: create starter libraries and materials from the existing ingredient table (once)."""
     flag = db.get_doc("settings", "kb_seeded")
-    if flag:
-        renormalise_all()
-        return
     for lid, name, desc in STARTER_LIBRARIES:
         if not db.get_doc("libraries", lid):
             db.put_doc("libraries", {"id": lid, "name": name, "description": desc, "folders": [], "tags": [], "created": _now(), "version": 1})
@@ -394,5 +391,6 @@ def ensure_seeded():
             save_property({"material_id": mid, "property": key, "value": val, "unit": unit, "conditions": conds, "method": "reference data",
                            "evidence_type": "manual_entry", "review_status": "reviewed" if p == "literature" else "extracted",
                            "source": {"citation": refs[0] if refs else "Migrated from ingredient table"}}, note="migrated")
-    db.put_doc("settings", {"id": "kb_seeded", "name": "kb_seeded", "at": _now()})
+    if not flag:
+        db.put_doc("settings", {"id": "kb_seeded", "name": "kb_seeded", "at": _now()})
     renormalise_all()
