@@ -89,3 +89,5 @@ without paid services.
 
 ## Latest verified commit
 - See the end of this file (updated after each push).
+
+- `af165dc` — Milestone 9 (pushed to `origin/development`, verified with `git ls-remote`; 33 pytest, 8 vitest, 16/16 E2E passing).
