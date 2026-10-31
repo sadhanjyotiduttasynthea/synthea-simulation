@@ -8,7 +8,7 @@ Branch: `development`
 |---|---|
 | R1 Desktop & interface architecture | done — Tauri 2 shell, ribbon, model builder, graphics window, settings, messages |
 | R2 Global scientific library manager | done |
-| R3 Research-paper PDF ingestion | planned |
+| R3 Research-paper PDF ingestion | done |
 | R4 AI scientific extraction & review | planned |
 | R5 Scientific model registry | planned |
 | R6 Geometry editor | planned |
@@ -46,6 +46,19 @@ Branch: `development`
   idempotent; renormalisation pass when the unit catalogue changes.
 - Overview page redesigned around the knowledge → simulation pipeline (cost KPIs removed from the overview).
 - Tests: +5 backend tests (units, migration idempotence, coexistence/conflicts, history/deprecation, export/import).
+
+### R3 — Research-paper PDF ingestion
+- Drag-and-drop / dialog import of multiple PDFs; originals stored locally (`<data dir>/papers`), SHA-256 de-duplication,
+  80 MB limit, non-PDF rejection; papers linked to libraries.
+- Local extraction with PyMuPDF: per-page text, ruled tables (cell-rectangle text), scanned-page detection (no text layer →
+  warning, manual entry), bibliographic metadata (PDF metadata, largest-font title, DOI/year patterns, journal heuristic)
+  marked *auto-detected* until the user verifies it; formatted citation.
+- Document viewer: server-rendered pages, zoom, page navigation, highlight of a supporting passage located by text
+  search (used to show the exact source of extracted values); text and table views; metadata editor.
+- Papers cited by reviewed/approved records cannot be deleted (traceability).
+- A clearly labelled SYNTHETIC test PDF (red banner on every page, invented values, fake `10.0000` DOI) is generated on
+  demand to demonstrate the workflow; it is never presented as literature.
+- Tests: +3 (ingestion/metadata/tables/search/render, de-duplication, metadata editing).
 
 - Database: schema-migration table; v2 adds scientific collections and parent links without touching existing data
   (verified on a copy of an existing database).
