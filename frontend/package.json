@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc -b",
-    "build:desktop": "tsc -b && vite build"
+    "build:desktop": "tsc -b && vite build",
+    "build:standalone": "vite build --config vite.standalone.config.ts && node -e \"require('fs').renameSync('../standalone/index.html','../standalone/Synthea-Simulation.html')\""
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
@@ -44,6 +45,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "~7.0.2",
     "vite": "^8.3.5",
+    "vite-plugin-singlefile": "^2.3.4",
     "vitest": "^5.0.5"
   }
 }

@@ -515,13 +515,24 @@ def report_pdf(body: dict = Body(...)):
 
 
 # ---------------------------------------------------------------- static frontend (production build)
-_dist = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
-if os.path.isdir(_dist):
+# frontend/dist (npm run build) if present, otherwise the single-file build standalone/Synthea-Simulation.html,
+# so the platform runs from a plain checkout without Node.js.
+_root = os.path.join(os.path.dirname(__file__), "..", "..")
+_dist = os.path.realpath(os.path.join(_root, "frontend", "dist"))
+_single = os.environ.get("SYNTHEA_STATIC_HTML") or os.path.join(_root, "standalone", "Synthea-Simulation.html")
+if os.environ.get("SYNTHEA_STATIC_HTML") is None and os.path.isdir(_dist):
     app.mount("/assets", StaticFiles(directory=os.path.join(_dist, "assets")), name="assets")
 
     @app.get("/{path:path}")
     def spa(path: str):
-        f = os.path.join(_dist, path)
-        if path and os.path.isfile(f):
+        f = os.path.realpath(os.path.join(_dist, path))
+        if path and f.startswith(_dist + os.sep) and os.path.isfile(f):
             return FileResponse(f)
         return FileResponse(os.path.join(_dist, "index.html"))
+elif os.path.isfile(_single):
+
+    @app.get("/{path:path}")
+    def spa_single(path: str):
+        if path.startswith("api/"):
+            return JSONResponse({"detail": "Not Found"}, status_code=404)
+        return FileResponse(_single, media_type="text/html")

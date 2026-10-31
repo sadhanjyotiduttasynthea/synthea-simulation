@@ -32,6 +32,17 @@ explicitly allowed, in which case results are flagged.
 
 ## Run it
 
+### Quickest on Windows (no installer, no Node.js)
+
+1. Install **Python 3.12** from <https://www.python.org/downloads/> and tick **"Add python.exe to PATH"**.
+2. Download this branch as a ZIP and unzip it.
+3. Double-click **`Start-Synthea.bat`**. The first run installs the scientific packages (a few minutes); the browser
+   then opens <http://localhost:8000>. Keep the black window open while you work; close it to stop.
+
+The whole interface is the single file [`standalone/Synthea-Simulation.html`](standalone/Synthea-Simulation.html)
+(rebuild with `cd frontend && npm run build:standalone`). The compute engine serves it; opened directly from disk it
+shows a start page that waits for the engine and then opens the platform. Everything runs on `127.0.0.1` only.
+
 ### Desktop application (Tauri 2)
 
 The desktop app starts its own local compute engine (a packaged Python process) bound to `127.0.0.1` on a random port
