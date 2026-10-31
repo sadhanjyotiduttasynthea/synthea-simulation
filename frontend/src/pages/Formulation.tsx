@@ -109,7 +109,7 @@ export default function Formulation() {
           <Panel title="Ingredient library" bodyClass="p-0 flex min-h-0 flex-1 flex-col" className="flex min-h-0 flex-1 flex-col">
             <div className="relative border-b border-neutral-200 p-2 dark:border-neutral-800">
               <Search className="absolute left-4 top-3.5 h-3.5 w-3.5 text-neutral-400" />
-              <input className={cx(inputCls, 'pl-7')} placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} />
+              <input className={cx(inputCls, 'w-full pl-7')} placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
             <div className="min-h-0 flex-1 overflow-auto p-1">
               {libFiltered.map((i) => {
@@ -286,7 +286,7 @@ function RheologyPanel({ f, onChange }: { f: F; onChange: (r: Rheology | null) =
         <Field label="n [–]"><NumInput value={r?.flow_behaviour_index} onChange={(v) => set('flow_behaviour_index', v)} /></Field>
         <Field label="T [°C]"><NumInput value={r?.temperature_c} onChange={(v) => set('temperature_c', v)} /></Field>
         <Field label="Data type" className="col-span-2">
-          <select className={inputCls} value={r?.data_type ?? 'measured'} onChange={(e) => set('data_type', e.target.value)}>
+          <select className={cx(inputCls, 'w-full')} value={r?.data_type ?? 'measured'} onChange={(e) => set('data_type', e.target.value)}>
             <option value="measured">measured</option><option value="literature">literature</option><option value="illustrative">illustrative</option>
           </select>
         </Field>

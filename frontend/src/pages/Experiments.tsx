@@ -180,7 +180,7 @@ function Records({ exps, reload, loading }: { exps: Experiment[]; reload: () => 
                 </Field>
                 <Field label="Experiment cost [€]"><NumInput value={edit.cost_eur} onChange={(v) => setEdit({ ...edit, cost_eur: v })} /></Field>
               </div>
-              <Field label="Notes"><textarea className={cx(inputCls, 'h-16 py-1')} value={edit.notes ?? ''} onChange={(e) => setEdit({ ...edit, notes: e.target.value })} /></Field>
+              <Field label="Notes"><textarea className={cx(inputCls, 'h-16 w-full py-1')} value={edit.notes ?? ''} onChange={(e) => setEdit({ ...edit, notes: e.target.value })} /></Field>
             </div>
           </div>
         )}

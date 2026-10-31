@@ -155,7 +155,7 @@ export default function Materials() {
           <div className="flex gap-2 border-b border-neutral-200 p-2 dark:border-neutral-800">
             <div className="relative flex-1">
               <Search className="absolute left-2 top-1.5 h-4 w-4 text-neutral-400" />
-              <input className={cx(inputCls, 'pl-7')} placeholder="Search name or category" value={q} onChange={(e) => setQ(e.target.value)} />
+              <input className={cx(inputCls, 'w-full pl-7')} placeholder="Search name or category" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
             <Select className="w-36" value={cat} onChange={(e) => setCat(e.target.value)}>
               <option value="">All categories</option>
@@ -236,7 +236,7 @@ export default function Materials() {
                 <>
                   {provSelect('thermal')}
                   {numGrid('thermal', THERMAL)}
-                  <Field className="mt-3" label="Relevant transition temperatures (denaturation, gelatinisation, melting) and method"><textarea className={cx(inputCls, 'h-16 py-1')} value={String(draft.thermal.transition_temperatures ?? '')} onChange={(e) => set(['thermal', 'transition_temperatures'], e.target.value)} /></Field>
+                  <Field className="mt-3" label="Relevant transition temperatures (denaturation, gelatinisation, melting) and method"><textarea className={cx(inputCls, 'h-16 w-full py-1')} value={String(draft.thermal.transition_temperatures ?? '')} onChange={(e) => set(['thermal', 'transition_temperatures'], e.target.value)} /></Field>
                 </>
               )}
               {tab === 'economics' && (
@@ -251,7 +251,7 @@ export default function Materials() {
               )}
               {tab === 'evidence' && (
                 <div className="space-y-3">
-                  <Field label="Literature references (one per line)" hint="Enter only references you have verified."><textarea className={cx(inputCls, 'h-20 py-1')} value={draft.evidence.references.join('\n')} onChange={(e) => set(['evidence', 'references'], e.target.value.split('\n').filter((s) => s.trim()))} /></Field>
+                  <Field label="Literature references (one per line)" hint="Enter only references you have verified."><textarea className={cx(inputCls, 'h-20 w-full py-1')} value={draft.evidence.references.join('\n')} onChange={(e) => set(['evidence', 'references'], e.target.value.split('\n').filter((s) => s.trim()))} /></Field>
                   <Field label="Measurement conditions"><Input value={draft.evidence.measurement_conditions ?? ''} onChange={(e) => set(['evidence', 'measurement_conditions'], e.target.value)} /></Field>
                   <Field label="Uncertainty"><Input value={draft.evidence.uncertainty ?? ''} onChange={(e) => set(['evidence', 'uncertainty'], e.target.value)} /></Field>
                   <Field label="Validation status"><Input value={draft.evidence.validation_status ?? ''} onChange={(e) => set(['evidence', 'validation_status'], e.target.value)} /></Field>

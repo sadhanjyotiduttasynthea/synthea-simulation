@@ -88,14 +88,16 @@ export function Field({ label, children, hint, className }: { label: ReactNode; 
   )
 }
 
-export const inputCls = 'h-7 w-full rounded border border-neutral-300 bg-white px-2 text-sm text-neutral-900 outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:focus:border-neutral-300 dark:focus:ring-neutral-300'
+export const inputCls = 'h-7 rounded border border-neutral-300 bg-white px-2 text-sm text-neutral-900 outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:focus:border-neutral-300 dark:focus:ring-neutral-300'
+
+const widthOr = (c?: string) => (c && /(^|\s)w-/.test(c) ? '' : 'w-full')
 
 export function Input(p: InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...p} className={cx(inputCls, p.className)} />
+  return <input {...p} className={cx(inputCls, widthOr(p.className), p.className)} />
 }
 
 export function Select(p: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...p} className={cx(inputCls, 'pr-6', p.className)} />
+  return <select {...p} className={cx(inputCls, 'pr-6', widthOr(p.className), p.className)} />
 }
 
 /** Numeric input that allows empty (null) and commits on blur/enter. */
@@ -131,7 +133,7 @@ export function NumInput({ value, onChange, step = 'any', min, max, placeholder,
       onChange={(e) => setText(e.target.value)}
       onBlur={commit}
       onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-      className={cx(inputCls, 'num text-right', className)}
+      className={cx(inputCls, 'num text-right', widthOr(className), className)}
     />
   )
 }

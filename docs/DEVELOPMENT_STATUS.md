@@ -31,8 +31,14 @@ Branch: `development`
   can be added as planned experiments; editable cost-reduction calculator (defaults 200 vs 60 experiments, €170,
   2 kg, software cost) with net savings, break-even and sensitivity chart.
 
+- **M6 – Process Simulator:** React Flow canvas with drag-and-drop equipment library (storage, mixer, heater, cooler,
+  pump, pipe, extruder, conveyor, packaging), connect/remove units, editable unit settings, save/save-as/delete flows;
+  backend flowsheet solver (topological order, mass balance with extruder flash-off, residence times, Choi–Okos
+  heat duties, pump power, HB pipe/die pressure drops only when formulation rheology is supplied, energy and
+  operating cost); temperature/mass-flow profile and power charts, per-unit results, explicit unsupported flags.
+
 ## In progress
-- M6 experiments UI, M6 process simulator, M7 3D printing lab, M8 assistant/reports UI.
+- M7 experiments UI, M6 process simulator, M7 3D printing lab, M8 assistant/reports UI.
 
 ## Outstanding
 - Frontend modules, CI workflow, documentation, end-to-end demo verification.
