@@ -37,8 +37,15 @@ Branch: `development`
   heat duties, pump power, HB pipe/die pressure drops only when formulation rheology is supplied, energy and
   operating cost); temperature/mass-flow profile and power charts, per-unit results, explicit unsupported flags.
 
+- **M7 – 3D Printing Lab:** React Three Fiber printer (bed, frame, gantry, printhead, nozzle), backend toolpath
+  generator (inset perimeters + rectilinear ±45° infill via scan-line even-odd fill) for block, cylinder, ring,
+  hexagon, star, stepped pyramid and imported 2-D outlines (CSV/JSON); time-accurate animation of the printhead
+  with layer-by-layer bead deposition (instanced beads, w × h), play/pause/restart/scrub/speed; print time, toolpath
+  and extrusion length, volume, mass (Choi–Okos density), layer count, required flow and flow-mismatch warning;
+  HB nozzle pressure/shear only when formulation rheology exists; success probability explicitly not predicted.
+
 ## In progress
-- M7 experiments UI, M6 process simulator, M7 3D printing lab, M8 assistant/reports UI.
+- M8 experiments UI, M6 process simulator, M7 3D printing lab, M8 assistant/reports UI.
 
 ## Outstanding
 - Frontend modules, CI workflow, documentation, end-to-end demo verification.
