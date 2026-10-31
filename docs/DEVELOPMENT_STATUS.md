@@ -24,8 +24,15 @@ Branch: `development`
   satisfaction with binding flags, LP dual sensitivities, Monte-Carlo intervals, infeasibility diagnosis with
   minimum relaxations; save candidate / open in studio / send to process / send to 3D print.
 
+- **M5 – Experiments:** experiment records (formulation, processing conditions, viscosity, texture, extrusion
+  behaviour, shape retention, cost, date, notes, data type) with add/edit/delete, CSV import/export, clearly-labelled
+  synthetic demo data generator; planning tab switching from space-filling DoE (<6 responses) to GP active learning
+  (uncertainty or target-seeking acquisition, kriging-believer batches) with LOO parity plot and Q²; recommendations
+  can be added as planned experiments; editable cost-reduction calculator (defaults 200 vs 60 experiments, €170,
+  2 kg, software cost) with net savings, break-even and sensitivity chart.
+
 ## In progress
-- M5 experiments UI, M6 process simulator, M7 3D printing lab, M8 assistant/reports UI.
+- M6 experiments UI, M6 process simulator, M7 3D printing lab, M8 assistant/reports UI.
 
 ## Outstanding
 - Frontend modules, CI workflow, documentation, end-to-end demo verification.
