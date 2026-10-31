@@ -44,8 +44,15 @@ Branch: `development`
   and extrusion length, volume, mass (Choi–Okos density), layer count, required flow and flow-mismatch warning;
   HB nozzle pressure/shear only when formulation rheology exists; success probability explicitly not predicted.
 
+- **M8 – AI assistant & reports:** context-aware assistant drawer on every page (built-in deterministic explainer using
+  only engine-computed values; optional server-side Claude integration via ANTHROPIC_API_KEY with no-fabrication
+  instructions and graceful fallback); Reports page with selectable sections and PDF (ReportLab), JSON and CSV
+  exports incl. assumptions/limitations and provenance legend; Settings with project settings, dark mode,
+  scientific model registry (equations, parameters, units, assumptions, applicability, validation, live compute),
+  safe custom-equation evaluator, AI configuration and data reset.
+
 ## In progress
-- M8 experiments UI, M6 process simulator, M7 3D printing lab, M8 assistant/reports UI.
+- M9 experiments UI, M6 process simulator, M7 3D printing lab, M8 assistant/reports UI.
 
 ## Outstanding
 - Frontend modules, CI workflow, documentation, end-to-end demo verification.
