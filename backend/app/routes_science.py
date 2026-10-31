@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import uuid
 
+import numpy as np
+
 from fastapi import APIRouter, Body, HTTPException
 
 from . import db, extraction, knowledge, sci_registry
@@ -321,3 +323,157 @@ def scene(name: str, molecule: str = "glutamic_acid", temperature_c: float = 85.
 @router.post("/molecular-scenes/emulsion")
 def emulsion(body: dict = Body(...)):
     return molecules.emulsion_physics(float(body["radius_um"]), float(body["gamma_mN_m"]), float(body["rho_d"]), float(body["rho_c"]), float(body["mu_c"]))
+
+
+# ------------------------------------------------------------------ digital twins & studies
+from . import twins as twin_svc  # noqa: E402
+
+
+@router.get("/twins")
+def list_twins(project_id: str):
+    return [t for t in db.list_docs("twins") if t.get("project_id") == project_id]
+
+
+@router.post("/twins")
+def create_twin(body: dict = Body(...)):
+    pid = body.get("project_id")
+    if not pid:
+        raise HTTPException(400, "project_id required")
+    t = twin_svc.default_twin(pid, body.get("name") or "Digital twin")
+    t.update({k: v for k, v in body.items() if k not in ("id",)})
+    t["id"] = f"twin-{uuid.uuid4().hex[:8]}"
+    return db.put_doc("twins", t)
+
+
+@router.put("/twins/{tid}")
+def update_twin(tid: str, body: dict = Body(...)):
+    if not db.get_doc("twins", tid):
+        raise HTTPException(404, "twin not found")
+    body["id"] = tid
+    return db.put_doc("twins", body)
+
+
+@router.delete("/twins/{tid}")
+def delete_twin(tid: str):
+    for s in db.list_children("studies", tid):
+        db.delete_doc("studies", s["id"])
+    db.delete_doc("twins", tid)
+    return {"deleted": tid}
+
+
+@router.post("/twins/{tid}/mesh")
+def twin_mesh(tid: str):
+    t = db.get_doc("twins", tid)
+    if not t:
+        raise HTTPException(404, "twin not found")
+    m, obj = twin_svc.build_mesh(t)
+    q = m.quality()
+    grid = {}
+    if m.kind == "cartesian3d":
+        grid = {"x_edges": (np.linspace(m.centers["x"][0] - (m.centers["x"][1] - m.centers["x"][0]) / 2, m.centers["x"][-1] + (m.centers["x"][1] - m.centers["x"][0]) / 2, m.shape[0] + 1)).tolist(),
+                "z_edges": np.linspace(0, obj["dims"]["height"] * obj.get("scale", [1, 1, 1])[2], m.shape[2] + 1).tolist(),
+                "y_edges": np.linspace(-obj["dims"]["depth"] / 2, obj["dims"]["depth"] / 2, m.shape[1] + 1).tolist()}
+    elif m.kind == "axisym":
+        grid = {"r_edges": np.linspace(0, obj["dims"]["radius"], m.shape[0] + 1).tolist(), "z_edges": np.linspace(0, obj["dims"]["height"], m.shape[1] + 1).tolist()}
+    else:
+        grid = {"r_edges": np.linspace(0, obj["dims"]["radius"], m.shape[0] + 1).tolist()}
+    return {**q, "grid": grid, "object": {"id": obj["id"], "kind": obj["kind"], "name": obj["name"]}, "boundaries": list(m.bnd_cell.keys())}
+
+
+@router.post("/twins/{tid}/run")
+def run_twin(tid: str):
+    t = db.get_doc("twins", tid)
+    if not t:
+        raise HTTPException(404, "twin not found")
+    try:
+        s = twin_svc.run_study(t)
+    except (ValueError, KeyError) as e:
+        raise HTTPException(400, str(e))
+    return db.put_doc("studies", s)
+
+
+@router.get("/studies")
+def list_studies(twin_id: str):
+    return [{k: v for k, v in s.items() if k not in ("heat", "flow", "diffusion", "reaction")} for s in db.list_children("studies", twin_id)]
+
+
+@router.get("/studies/{sid}")
+def get_study(sid: str):
+    s = db.get_doc("studies", sid)
+    if not s:
+        raise HTTPException(404, "study not found")
+    return s
+
+
+@router.delete("/studies/{sid}")
+def delete_study(sid: str):
+    db.delete_doc("studies", sid)
+    return {"deleted": sid}
+
+
+@router.post("/studies/{sid}/compare")
+def compare_study(sid: str, body: dict = Body(...)):
+    s = get_study(sid)
+    try:
+        v = twin_svc.compare(s, body.get("probe", "centre"), body["data"], body.get("label", "experimental dataset"), body.get("field", "heat"))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    s.setdefault("validation", {})
+    s["validation"] = {"metrics": v}
+    db.put_doc("studies", s)
+    return v
+
+
+@router.get("/twins/{tid}/dependencies")
+def dependencies(tid: str):
+    """Provenance graph: papers → records/models → material/formulation → twin → studies → validation."""
+    t = db.get_doc("twins", tid)
+    if not t:
+        raise HTTPException(404, "twin not found")
+    studies = db.list_children("studies", tid)
+    latest = studies[-1] if studies else None
+    nodes, edges = [], []
+
+    def node(i, label, kind, sub=""):
+        if not any(n["id"] == i for n in nodes):
+            nodes.append({"id": i, "label": label, "kind": kind, "sub": sub})
+
+    node("twin", t["name"], "twin", ", ".join(p["kind"] for p in t.get("physics", []) if p.get("enabled")))
+    g = db.get_doc("geometries", f"geo-{t['project_id']}") or {}
+    obj = next((o for o in g.get("objects", []) if o["id"] == t.get("geometry_object_id")), None)
+    if obj:
+        node("geo", obj["name"], "geometry", obj["kind"])
+        edges.append(("geo", "twin"))
+    mat = t.get("material") or {}
+    if mat.get("type") == "formulation":
+        f = db.get_doc("formulations", mat["id"]) or {}
+        node("mat", f.get("name", mat["id"]), "formulation", "composition → Choi & Okos")
+        edges.append(("mat", "twin"))
+    elif mat.get("type") == "material":
+        m = db.get_doc("materials", mat["id"]) or {}
+        node("mat", m.get("name", mat["id"]), "material", "library material")
+        edges.append(("mat", "twin"))
+    for p in (latest or {}).get("provenance", []):
+        key = p.get("model_id") or p.get("record_id")
+        if not key:
+            node(f"src-{p['quantity']}", p.get("source", "model"), "model", p.get("type", ""))
+            edges.append((f"src-{p['quantity']}", "mat"))
+            continue
+        node(key, p.get("model") or f"{p['quantity']} record", "model" if p.get("model_id") else "record", p.get("status") or p.get("type", ""))
+        edges.append((key, "mat" if mat else "twin"))
+        doc = db.get_doc("sci_models", key) or db.get_doc("properties", key) or {}
+        pid = (doc.get("source") or {}).get("paper_id")
+        if pid:
+            paper = db.get_doc("papers", pid) or {}
+            node(pid, (paper.get("metadata") or {}).get("title", pid), "paper", f"p. {(doc.get('source') or {}).get('page', '?')}")
+            edges.append((pid, key))
+    if latest:
+        node("study", latest["name"], "study", latest.get("created", "")[:16])
+        edges.append(("twin", "study"))
+        node("results", "Results", "results", f"{len(latest.get('warnings', []))} warnings")
+        edges.append(("study", "results"))
+        if (latest.get("validation") or {}).get("metrics"):
+            v = latest["validation"]["metrics"]
+            node("val", f"Validation: {v['label']}", "validation", f"RMSE {v['rmse']:.3g}")
+            edges.append(("results", "val"))
+    return {"nodes": nodes, "edges": [{"source": a, "target": b} for a, b in dict.fromkeys(edges)]}

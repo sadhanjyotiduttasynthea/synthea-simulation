@@ -13,7 +13,7 @@ Branch: `development`
 | R5 Scientific model registry | done |
 | R6 Geometry editor | done |
 | R7 Molecular visualization | done |
-| R8 Digital twin, solvers, results | planned |
+| R8 Digital twin, solvers, results | done |
 | R9 Desktop packaging & final integration | planned |
 
 ### R1 — Desktop & interface architecture
@@ -46,6 +46,31 @@ Branch: `development`
   idempotent; renormalisation pass when the unit catalogue changes.
 - Overview page redesigned around the knowledge → simulation pipeline (cost KPIs removed from the overview).
 - Tests: +5 backend tests (units, migration idempotence, coexistence/conflicts, history/deprecation, export/import).
+
+### R8 — Digital twins, numerical solvers and results
+- Digital twin = geometry object + material (formulation → Choi & Okos T-dependent properties, or library material →
+  approved records) + physics + initial/boundary conditions + process parameters + mesh + study + results +
+  experimental validation; dependency/provenance graph (papers → records/models → material → twin → study → results →
+  validation).
+- Finite-volume solvers (implicit backward Euler; sparse LU or Jacobi-PCG): 3-D hexahedral (cuboid), axisymmetric r–z
+  (cylinder), spherical shells; heat conduction with convection / fixed-T / insulated boundaries per face; mass diffusion
+  (Dirichlet or mass-transfer coefficient); first-order kinetics integrated cell-wise on the temperature history (approved
+  model only); fully developed laminar Herschel–Bulkley channel flow (velocity, shear rate, viscosity, pressure fields).
+- Verification: centre temperature vs exact plane-wall series solution (< 0.2 % error), energy balance closes to
+  round-off, Newtonian-limit ΔP and parabolic profile, numerical flow-rate check.
+- Validity enforcement: refusal outside property-model temperature range, model shear-rate range, or when no model exists
+  for the requested concentration/temperature ("characterise the material experimentally") unless extrapolation is
+  explicitly allowed per twin — then results are flagged.
+- Mesh section: automatic/target cell size, cell counts, min/max size, aspect ratio, quality grade, grid preview.
+- Studies: time-dependent, stationary, parametric sweep (h, ambient T, initial T, time), one-at-a-time sensitivity
+  (normalised coefficients); solver progress/log to the Solver Log tab, warnings to the Warnings tab.
+- Results: animated 2-D field maps with contours and colour bar (mid-planes / r–z section), computed field rendered on a
+  section plane inside the 3-D geometry, probe histories and volume mean, radial profiles, flow profiles and section
+  fields, sweep and sensitivity charts, reaction-progress map, experimental comparison (RMSE, bias, MAE, R², residuals),
+  CSV/JSON export, provenance table.
+- Not claimed: no general 3-D FEM/CFD, no free-surface or developing flow, no coupled heat–flow (viscous heating).
+- Tests: +6 (analytic verification, HB channel limits, formulation heat twin + comparison + extrapolation policy, sweep and
+  sensitivity signs, flow twin approved-model/validity/condition guards, kinetics coupling).
 
 ### R7 — Molecular visualization
 - Own R3F molecular viewer (instanced atoms/bonds; CPK colours, Bondi vdW radii): ball-and-stick, sticks, space-filling,
