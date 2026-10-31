@@ -278,8 +278,11 @@ without paid services.
 - `146c7f6` — R9 pushed to `origin/development` (58 pytest, 12 vitest, 14/14 E2E; Linux release package launched successfully).
 
 ## Hosting (branch `hosting-development`)
-- Free team hosting without payment: Docker image (frontend served by the backend, data in `/data`), shared-password
-  sign-in (`SYNTHEA_PASSWORD`), automatic backup/restore of the database and PDFs to a private Hugging Face dataset
-  (`app/backup.py`), deploy script for Hugging Face Spaces and an optional GitHub Action. Guide: `docs/DEPLOY_FREE.md`.
-- Verified: container built; sign-in, app and API; a fresh container with an empty disk restores the data.
-
+- Mac host for everyone on the same Wi-Fi: `docker-compose.yml` + `Start-Synthea.command` (starts Docker Desktop if
+  needed, creates `.env` with the team password and cookie secret, builds/starts the container, prints the LAN and
+  `.local` addresses, keeps the Mac awake, Ctrl+C stops), `Stop-Synthea.command`, `Backup-Synthea.command`.
+  Guide and checklist: `docs/HOSTING_MAC.md`.
+- Shared-password sign-in (`SYNTHEA_PASSWORD`), data in the Docker volume `synthea_synthea-data`.
+- Verified in Docker (Linux): reachable on the host's network address, sign-in, upload, data kept across stop/start,
+  backup archive contents, stop script. The macOS-specific parts (Finder double-click, `ipconfig getifaddr`,
+  `caffeinate`, `open -a Docker`) could not be run here.

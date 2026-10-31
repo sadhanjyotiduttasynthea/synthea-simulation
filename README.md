@@ -76,11 +76,12 @@ Development window: `cd desktop && SYNTHEA_DEV_PYTHON=/path/to/python npx tauri 
 
 Open <http://localhost:5173>. Or run `./scripts/serve.sh` for a single-port build on <http://localhost:8000>.
 
-### Hosting for a team (free)
+### Hosting on a Mac for the team (same Wi-Fi)
 
-Free options without payment or credit card — Hugging Face Spaces with automatic backups to a private dataset
-(recommended), a laptop with a Cloudflare quick tunnel, or the local network: [`docs/DEPLOY_FREE.md`](docs/DEPLOY_FREE.md).
-Set `SYNTHEA_PASSWORD` to protect the site with a shared team password.
+Double-click **`Start-Synthea.command`** (Docker Desktop required): it builds and starts the app in Docker, asks once for
+a team password, and prints the address for everyone on the same Wi-Fi (e.g. `http://192.168.1.23:8000`).
+`Stop-Synthea.command` stops it, `Backup-Synthea.command` saves the data. Guide and checklist:
+[`docs/HOSTING_MAC.md`](docs/HOSTING_MAC.md). Other options (own server, off-site backups): [`docs/DEPLOY_FREE.md`](docs/DEPLOY_FREE.md).
 
 ## Demonstration
 
