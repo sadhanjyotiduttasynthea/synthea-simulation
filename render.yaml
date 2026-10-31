@@ -1,0 +1,24 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# New → Blueprint → pick this repository and branch; Render reads this file.
+services:
+  - type: web
+    name: synthea-simulation
+    runtime: docker
+    branch: ali
+    plan: starter            # a persistent disk needs a paid instance (the free plan has no disk and sleeps)
+    region: frankfurt
+    healthCheckPath: /api/health
+    autoDeploy: true
+    disk:
+      name: synthea-data
+      mountPath: /data       # SQLite database and uploaded PDFs survive deploys and restarts
+      sizeGB: 1
+    envVars:
+      - key: SYNTHEA_PASSWORD   # the team password — entered in the Render dashboard, never committed
+        sync: false
+      - key: SYNTHEA_SECRET     # signs the login cookies
+        generateValue: true
+      - key: SYNTHEA_DATA_DIR
+        value: /data
+      - key: ANTHROPIC_API_KEY  # optional (Claude summaries/assistant); leave empty to stay fully local
+        sync: false

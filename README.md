@@ -70,6 +70,11 @@ npm run dev
 The SQLite database is created automatically at `backend/data/synthea.db` and seeded with the demo project. Use
 **Settings → Data → Reset demo data** to restore it.
 
+### Hosting for a team (Render)
+
+The repository contains a `Dockerfile` and a Render blueprint (`render.yaml`). Set `SYNTHEA_PASSWORD` to protect the
+site with a shared team password. Step-by-step guide: [`docs/DEPLOY_RENDER.md`](docs/DEPLOY_RENDER.md).
+
 ### Optional: Claude-powered assistant
 
 Set `ANTHROPIC_API_KEY` in the backend environment before starting it (optionally `SYNTHEA_AI_MODEL`). The key stays on

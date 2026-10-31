@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import assistant, db, experiments, knowledge, optimize, printing, process, reports, routes_formulation, routes_knowledge, routes_molecules, routes_print, routes_process, routes_papers, routes_science, routes_twin, routes_workspace, seed
+from . import assistant, auth, db, experiments, knowledge, optimize, printing, process, reports, routes_formulation, routes_knowledge, routes_molecules, routes_print, routes_process, routes_papers, routes_science, routes_twin, routes_workspace, seed
 from .science import expression, nutrition, registry, thermal
 
 app = FastAPI(title="Synthea Simulation API", version="2.0.0")
@@ -34,6 +34,8 @@ async def token_guard(request: Request, call_next):
     return await call_next(request)
 
 
+app.middleware("http")(auth.guard)  # shared-password gate (only when SYNTHEA_PASSWORD is set)
+app.include_router(auth.router)
 app.include_router(routes_workspace.router)
 app.include_router(routes_knowledge.router)
 app.include_router(routes_papers.router)
