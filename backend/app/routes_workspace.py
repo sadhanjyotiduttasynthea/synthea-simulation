@@ -69,6 +69,7 @@ def tree(project_id: str):
         "models": {"approved": sum(1 for m in models if m.get("status") in ("approved", "validated")), "total": len(models)},
         "geometry": geo_objs,
         "twins": [{"id": t["id"], "name": t.get("name", t["id"]), "physics": [p.get("kind") for p in t.get("physics", [])]} for t in twins],
+        "molecules": [{"id": m["id"], "name": m.get("name", m["id"]), "kind": m.get("kind")} for m in db.list_docs("molecules")],
     }
 
 

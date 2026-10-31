@@ -87,6 +87,10 @@ PROPERTIES: dict[str, tuple[str, str, str | None, list[str]]] = {
     "degree_of_hydrolysis": ("Degree of hydrolysis", "chemical", "percent", ["degree of hydrolysis"]),
     "zeta_potential": ("Zeta potential", "chemical", "mV", ["zeta potential", "ζ-potential"]),
     "surface_hydrophobicity": ("Surface hydrophobicity", "chemical", None, ["surface hydrophobicity"]),
+    "molar_mass": ("Molar mass", "chemical", "g/mol", ["molar mass", "molecular weight", "molecular mass"]),
+    "hydrodynamic_radius": ("Hydrodynamic radius", "chemical", "nm", ["hydrodynamic radius", "stokes radius"]),
+    "net_charge": ("Net charge", "chemical", None, ["net charge"]),
+    "amino_acid_score": ("Amino acid score", "composition", None, ["amino acid score", "chemical score"]),
 }
 
 # experimental condition keys (canonical unit)

@@ -19,6 +19,7 @@ export interface TreeIndex {
   models: { approved: number; total: number }
   geometry: { id: string; name: string; kind: string }[]
   twins: { id: string; name: string; physics: string[] }[]
+  molecules?: { id: string; name: string; kind: string }[]
 }
 
 export const refreshTree = () => window.dispatchEvent(new Event('synthea:refresh-tree'))
@@ -80,7 +81,8 @@ export function ModelTree() {
       { id: 'materials', label: 'Materials', icon: Globe2,
         children: [
           { id: 'ingredients', label: 'Ingredient table', icon: Beaker, to: '/materials' },
-          { id: 'molecules', label: 'Molecular structures', icon: Atom, to: '/molecules' },
+          { id: 'molecules', label: 'Molecular structures', icon: Atom, to: '/molecules', badge: idx?.molecules ? String(idx.molecules.length) : undefined, actions: [{ label: 'Add molecule…', to: '/molecules', cmd: 'molecule.new' }],
+            children: (idx?.molecules ?? []).map((m) => ({ id: `mol:${m.id}`, label: m.name, icon: Atom, to: `/molecules?mol=${m.id}` })) },
         ] },
       { id: 'physics', label: 'Physics', icon: Thermometer, to: '/twin?tab=physics',
         actions: [['heat', 'Heat transfer'], ['flow', 'Laminar flow'], ['diffusion', 'Diffusion'], ['kinetics', 'Reaction kinetics']].map(([k, l]) => ({ label: `Add ${l}`, to: '/twin?tab=physics', cmd: 'twin.addPhysics', payload: k })),

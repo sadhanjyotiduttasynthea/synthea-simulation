@@ -81,7 +81,7 @@ function CameraRig({ preset, fitToken, root, ortho, controls }: { preset: Camera
   return null
 }
 
-function Measure({ points }: { points: THREE.Vector3[] }) {
+function Measure({ points, unit = 'mm' }: { points: THREE.Vector3[]; unit?: string }) {
   if (points.length === 0) return null
   const d = points.length === 2 ? points[0].distanceTo(points[1]) : null
   return (
@@ -96,7 +96,7 @@ function Measure({ points }: { points: THREE.Vector3[] }) {
         <>
           <Line points={points} color="#06b6d4" lineWidth={2} />
           <Html position={points[0].clone().lerp(points[1], 0.5)} center>
-            <div className="whitespace-nowrap rounded bg-cyan-600 px-1.5 py-0.5 text-[11px] font-semibold text-white shadow">{d!.toFixed(2)} mm</div>
+            <div className="whitespace-nowrap rounded bg-cyan-600 px-1.5 py-0.5 text-[11px] font-semibold text-white shadow">{d!.toFixed(2)} {unit}</div>
           </Html>
         </>
       )}
@@ -116,14 +116,15 @@ export interface GraphicsViewProps {
   fitSignal?: number
   showGizmo?: boolean
   legend?: ReactNode
+  unit?: string
 }
 
 /**
  * Engineering graphics window: perspective/orthographic camera, orbit/pan/zoom,
  * camera presets, fit-to-view, grid and axes, view modes, section plane and a
- * two-point measurement tool. Scene units are millimetres.
+ * two-point measurement tool. Scene units are millimetres unless `unit` says otherwise (e.g. Å).
  */
-export function GraphicsView({ children, dimension = '3d', toolbar, overlay, gridSize = 200, onBackgroundClick, className, initialPreset = 'iso', fitSignal = 0, showGizmo = true, legend }: GraphicsViewProps) {
+export function GraphicsView({ children, dimension = '3d', toolbar, overlay, gridSize = 200, onBackgroundClick, className, initialPreset = 'iso', fitSignal = 0, showGizmo = true, legend, unit = 'mm' }: GraphicsViewProps) {
   const dark = useStore((s) => s.dark)
   const [mode, setMode] = useState<ViewMode>('solid')
   const [preset, setPreset] = useState<CameraPreset>(initialPreset)
@@ -182,7 +183,7 @@ export function GraphicsView({ children, dimension = '3d', toolbar, overlay, gri
             <group ref={root} onPointerDown={onPick}>{children}</group>
           </ViewCtx.Provider>
           <MaterialModes root={root} mode={mode} section={section} />
-          <Measure points={pts} />
+          <Measure points={pts} unit={unit} />
           {grid && <gridHelper args={[gridSize, gridSize / 10, dark ? '#3a3f47' : '#9aa3ad', dark ? '#262a30' : '#c6ccd3']} userData={{ noViewMode: true }} />}
           {axes && <axesHelper args={[gridSize / 4]} />}
           <CameraRig preset={preset} fitToken={fit} root={root} ortho={ortho} controls={controls} />

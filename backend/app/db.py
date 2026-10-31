@@ -19,13 +19,15 @@ COLLECTIONS = (
     "libraries", "materials", "properties", "papers", "extractions", "sci_models",
     # model building (project scoped)
     "geometries", "twins", "studies",
+    # molecular structures (added by schema migration 3)
+    "molecules",
 )
 
 # Ordered schema migrations. Existing user data is never dropped; new tables and
 # columns are added, and data migrations only insert.
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
-_lock = threading.Lock()
+_lock = threading.RLock()  # one shared connection: every statement + fetch runs under the lock
 _conn: sqlite3.Connection | None = None
 
 
@@ -70,18 +72,28 @@ def _migrate(conn: sqlite3.Connection):
                 conn.execute(f"ALTER TABLE {c} ADD COLUMN parent_id TEXT")
             conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{c}_parent ON {c}(parent_id)")
             conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{c}_project ON {c}(project_id)")
-        for v in range(max(current, 0) + 1, SCHEMA_VERSION + 1):
-            conn.execute("INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (?, ?)", (v, _now()))
+    if current < 3:
+        # v3: molecules collection; make sure every (possibly newly created) table has parent_id
+        for c in COLLECTIONS:
+            cols = {r[1] for r in conn.execute(f"PRAGMA table_info({c})")}
+            if "parent_id" not in cols:
+                conn.execute(f"ALTER TABLE {c} ADD COLUMN parent_id TEXT")
+            conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{c}_parent ON {c}(parent_id)")
+            conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{c}_project ON {c}(project_id)")
+    for v in range(max(current, 0) + 1, SCHEMA_VERSION + 1):
+        conn.execute("INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (?, ?)", (v, _now()))
     conn.commit()
 
 
 def schema_version() -> int:
-    return connect().execute("SELECT COALESCE(MAX(version), 0) FROM schema_migrations").fetchone()[0]
+    with _lock:
+        return connect().execute("SELECT COALESCE(MAX(version), 0) FROM schema_migrations").fetchone()[0]
 
 
 def list_children(collection: str, parent_id: str) -> list[dict]:
     _check(collection)
-    rows = connect().execute(f"SELECT data FROM {collection} WHERE parent_id = ? ORDER BY updated_at", (parent_id,)).fetchall()
+    with _lock:
+        rows = connect().execute(f"SELECT data FROM {collection} WHERE parent_id = ? ORDER BY updated_at", (parent_id,)).fetchall()
     return [json.loads(r["data"]) for r in rows]
 
 
@@ -104,17 +116,19 @@ def _check(c: str):
 
 def list_docs(collection: str, project_id: str | None = None) -> list[dict]:
     _check(collection)
-    conn = connect()
-    if project_id is None:
-        rows = conn.execute(f"SELECT data FROM {collection} ORDER BY updated_at").fetchall()
-    else:
-        rows = conn.execute(f"SELECT data FROM {collection} WHERE project_id = ? OR project_id IS NULL ORDER BY updated_at", (project_id,)).fetchall()
+    with _lock:
+        conn = connect()
+        if project_id is None:
+            rows = conn.execute(f"SELECT data FROM {collection} ORDER BY updated_at").fetchall()
+        else:
+            rows = conn.execute(f"SELECT data FROM {collection} WHERE project_id = ? OR project_id IS NULL ORDER BY updated_at", (project_id,)).fetchall()
     return [json.loads(r["data"]) for r in rows]
 
 
 def get_doc(collection: str, doc_id: str) -> dict | None:
     _check(collection)
-    row = connect().execute(f"SELECT data FROM {collection} WHERE id = ?", (doc_id,)).fetchone()
+    with _lock:
+        row = connect().execute(f"SELECT data FROM {collection} WHERE id = ?", (doc_id,)).fetchone()
     return json.loads(row["data"]) if row else None
 
 
@@ -153,4 +167,5 @@ def delete_where_project(collection: str, project_id: str):
 
 def count(collection: str) -> int:
     _check(collection)
-    return connect().execute(f"SELECT COUNT(*) AS n FROM {collection}").fetchone()["n"]
+    with _lock:
+        return connect().execute(f"SELECT COUNT(*) AS n FROM {collection}").fetchone()["n"]
