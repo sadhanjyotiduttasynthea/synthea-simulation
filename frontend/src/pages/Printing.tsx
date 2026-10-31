@@ -1,10 +1,12 @@
 import { OrbitControls } from '@react-three/drei'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Pause, Play, RotateCcw, Save, Upload, Wand2 } from 'lucide-react'
+import { Download, Pause, Play, RotateCcw, Save, Upload, Wand2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { DEFAULT_EXTRUSION, DEFAULT_LIMITS, ExtrusionResults, ExtrusionSettings, LimitSettings, ManufacturabilityPanel, OptimizedProduct, type Extrusion, type ExtrusionResult, type Limits, type Manufacturability } from '../components/PrintExtras'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { Alert, Button, Field, KV, NumInput, PageHeader, Panel, Prov, Select, Spinner, Stat } from '../components/ui'
-import { api, readFile } from '../lib/api'
+import { api, download, readFile } from '../lib/api'
 import { fmt } from '../lib/format'
 import { useActiveFormulation, useResults, useStore } from '../store'
 
@@ -23,6 +25,9 @@ interface PrintParams {
   infill_pct: number
   perimeters: number
   build_volume_mm: [number, number, number]
+  extrusion: Extrusion
+  limits: Limits
+  limits_provenance: string
 }
 
 interface PrintResult {
@@ -31,14 +36,17 @@ interface PrintResult {
   path: [number, number, number, number][]; layers: { layer: number; z: number; extrusion_mm: number }[]
   assumptions: string[]; warnings: string[]; unsupported: string[]
   nozzle?: Record<string, number | string | null>
+  extrusion?: ExtrusionResult
+  manufacturability?: Manufacturability
 }
 
 const DEFAULTS: PrintParams = {
   shape: 'cube', geometry: { width: 40, depth: 30, diameter: 40, inner_diameter: 18, height: 12 },
   nozzle_diameter_mm: 1.2, nozzle_length_mm: 10, line_width_mm: null, layer_height_mm: 1.0, print_speed_mm_s: 20, travel_speed_mm_s: 60,
   flow_rate_mm3_s: null, extrusion_temperature_c: 25, bed_temperature_c: 20, infill_pct: 40, perimeters: 1, build_volume_mm: [200, 200, 100],
+  extrusion: DEFAULT_EXTRUSION, limits: DEFAULT_LIMITS, limits_provenance: 'illustrative',
 }
-const SHAPES: Record<string, string> = { cube: 'Rectangular block', cylinder: 'Cylinder (disc)', ring: 'Hollow ring', hexagon: 'Hexagonal prism', star: 'Five-point star', pyramid: 'Stepped pyramid', custom: 'Imported polygon' }
+const SHAPES: Record<string, string> = { geometry: 'Geometry editor / imported STL', cube: 'Rectangular block', cylinder: 'Cylinder (disc)', ring: 'Hollow ring', hexagon: 'Hexagonal prism', star: 'Five-point star', pyramid: 'Stepped pyramid', custom: 'Imported polygon' }
 const S = 0.1 // scene units per mm
 
 export default function Printing() {
@@ -68,7 +76,7 @@ export default function Printing() {
     setErr(null)
     try {
       const rheo = form?.rheology && form.rheology.yield_stress_pa !== null ? { ...form.rheology, source: `${form.rheology.data_type}: ${form.rheology.source || 'formulation record'}` } : null
-      const r = await api.post<PrintResult>('/api/print/toolpath', { ...params, lines: form?.lines ?? [], rheology: rheo })
+      const r = await api.post<PrintResult>('/api/print/toolpath', { ...params, lines: form?.lines ?? [], rheology: rheo, project_id: project?.id })
       setRes(r)
       simTime.current = 0
       setProgress(0)
@@ -109,6 +117,15 @@ export default function Printing() {
     }
   }
 
+  const exportGcode = async () => {
+    const rheo = form?.rheology && form.rheology.yield_stress_pa !== null ? { ...form.rheology, source: `${form.rheology.data_type}: ${form.rheology.source || 'formulation record'}` } : null
+    const blob = await api.blob('/api/print/gcode', { ...p, lines: form?.lines ?? [], rheology: rheo, project_id: project?.id, title: `${project?.name ?? 'Synthea'} — ${form?.name ?? ''}` })
+    await download('synthea_print.gcode', blob, 'text/plain')
+  }
+  const exportStl = async () => {
+    const g = await api.get<{ objects: unknown[] }>(`/api/geometry?project_id=${project!.id}`)
+    await download('synthea_geometry.stl', await api.blob('/api/geometry/stl', { objects: g.objects }), 'model/stl')
+  }
   const timeline = useMemo(() => buildTimeline(res, p), [res, p.print_speed_mm_s, p.travel_speed_mm_s])  // eslint-disable-line react-hooks/exhaustive-deps
   const total = timeline?.total ?? 0
   const layerNow = res && timeline ? res.path[Math.min(timeline.indexAt(simTime.current), res.path.length - 1)]?.[2] : 0
@@ -120,6 +137,8 @@ export default function Printing() {
         subtitle="Virtual food printer: real toolpath generation (perimeters + rectilinear infill), layer-by-layer deposition and extrusion calculations."
         actions={<>
           <Button size="sm" onClick={() => saveProject({ ...project!, print_settings: p as unknown as Record<string, unknown> }).then(() => toast('Printer settings saved to project', 'success'))}><Save className="h-3.5 w-3.5" />Save settings</Button>
+          <Button size="sm" onClick={exportGcode} disabled={!res}><Download className="h-3.5 w-3.5" />G-code</Button>
+          <Button size="sm" onClick={exportStl} disabled={p.shape !== 'geometry'} title={p.shape === 'geometry' ? 'Export the geometry as STL' : 'STL export works for the Geometry editor shape'}><Download className="h-3.5 w-3.5" />STL</Button>
           <Button variant="primary" onClick={() => generate()} loading={busy}><Wand2 className="h-3.5 w-3.5" />Generate toolpath</Button>
         </>}
       />
@@ -129,9 +148,13 @@ export default function Printing() {
             <Field label="Formulation"><Select value={form?.id ?? ''} onChange={(e) => setFormId(e.target.value)}>{formulations.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</Select></Field>
             <div className="mt-2 text-[11px]">Rheology: {form?.rheology && form.rheology.yield_stress_pa !== null ? <><Prov kind={form.rheology.data_type} /> τ₀ {form.rheology.yield_stress_pa} Pa · K {form.rheology.consistency_index_pa_sn} · n {form.rheology.flow_behaviour_index}</> : <Prov kind="missing" />}</div>
             <p className="mt-1 text-[10px] text-neutral-500">Density for mass calculation: Choi–Okos at extrusion temperature (calculated).</p>
+            <div className="mt-2">{project && <OptimizedProduct projectId={project.id} onUse={(id) => { setFormId(id); toast('Formulation of the optimized product selected', 'success') }} />}</div>
           </Panel>
+          <ExtrusionSettings ex={p.extrusion ?? DEFAULT_EXTRUSION} onChange={(ex) => setP({ ...p, extrusion: ex })} />
+          <LimitSettings lim={p.limits ?? DEFAULT_LIMITS} prov={p.limits_provenance ?? 'illustrative'} onChange={(l) => setP({ ...p, limits: l })} onProv={(v) => setP({ ...p, limits_provenance: v })} />
           <Panel title="Geometry">
             <div className="space-y-2">
+              {p.shape === 'geometry' && <p className="text-[11px] text-neutral-500">Sliced from the <Link className="text-rose-600 underline" to="/geometry">Geometry editor</Link> (sketches, primitives or an imported STL).</p>}
               <Field label="Shape"><Select value={p.shape} onChange={(e) => setP({ ...p, shape: e.target.value })}>{Object.entries(SHAPES).map(([k, v]) => <option key={k} value={k} disabled={k === 'custom' && !p.geometry.polygon}>{v}</option>)}</Select></Field>
               <div className="grid grid-cols-2 gap-2">
                 {(p.shape === 'cube' || p.shape === 'pyramid') && <><Field label="Width [mm]"><NumInput value={p.geometry.width} onChange={(v) => g('width', v)} /></Field><Field label="Depth [mm]"><NumInput value={p.geometry.depth} onChange={(v) => g('depth', v)} /></Field></>}
@@ -200,6 +223,8 @@ export default function Printing() {
                 <Stat label="Toolpath length" value={fmt(res.toolpath_length_mm / 1000, 2)} unit="m" sub={`extrude ${fmt(res.extrusion_length_mm / 1000, 2)} m · travel ${fmt(res.travel_length_mm / 1000, 2)} m`} />
                 <Stat label="Material" value={fmt(res.material_mass_g, 1)} unit="g" sub={`${fmt(res.deposited_volume_cm3, 2)} cm³`} />
               </div>
+              {res.manufacturability && <ManufacturabilityPanel m={res.manufacturability} />}
+              {res.extrusion && <ExtrusionResults ex={res.extrusion} />}
               <Panel title="Extrusion" actions={<Prov kind="calculated" />}>
                 <KV rows={[
                   ['Line width', `${fmt(res.line_width_mm, 2)} mm`],

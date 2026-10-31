@@ -13,6 +13,7 @@ const EXT: Record<string, { name: string; extensions: string[] }> = {
   '.csv': { name: 'CSV', extensions: ['csv'] },
   '.pdf': { name: 'PDF document', extensions: ['pdf'] },
   '.stl': { name: 'STL geometry', extensions: ['stl'] },
+  '.gcode': { name: 'G-code', extensions: ['gcode', 'gco', 'nc'] },
   '.txt': { name: 'Text', extensions: ['txt'] },
 }
 

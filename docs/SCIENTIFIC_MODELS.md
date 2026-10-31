@@ -246,3 +246,49 @@ Assignment (first available source wins):
 The class is every class whose hardness band intersects the uncertainty band: one class, or a range such as
 "TX-03 to TX-04". With no data: "unclassified — needs texture data". Ingredient-level texture data are never averaged
 into a product class.
+
+## Synthea Print — geometry, slicing, extrusion methods, manufacturability and exports
+
+### Geometry and slicing (`backend/app/geometry3d.py`)
+Prototype geometry is drawn in the Geometry editor (sketches extruded in z: rectangle, circle, ring, polygon; primitives:
+box, cylinder, cone/frustum, sphere) or imported as STL (ASCII or binary; placed on the bed and centred). Every object
+is a closed triangle mesh (mm, z up). The toolpath generator slices the meshes at mid-layer heights (triangle–plane
+intersection, segments chained into loops, outer/hole classification by even-odd nesting), so any shape — not only the
+built-in prisms — is printed with perimeters and ±45° infill. Objects are not merged by boolean union: overlapping
+objects are reported.
+
+### Extrusion methods (`printing.extrusion`)
+Required bead flow Q = w·h·v (rectangular bead).
+* **Piston / syringe**: ram speed v = Q/A_barrel; ram displacement = deposited volume / A_barrel; refills from the barrel
+  capacity; ram force = Δp_nozzle·A_barrel (barrel friction and contraction losses not included). G-code E = plunger mm.
+* **Screw / auger**: positive-displacement conveying Q = f·(π/4)(D² − (D − 2h)²)·pitch·N (fill fraction f, channel depth
+  h; leakage and pressure back-flow not modelled); required speed N compared with the maximum. G-code E = revolutions.
+* Both use the Herschel–Bulkley capillary pressure drop in the nozzle; without τ₀, K, n the pressure is *not computed*.
+
+### Prototype Manufacturability Score (`printing.manufacturability`)
+A rule-based **compatibility index — not a success probability** (printing success probability is not predicted).
+Five named checks with visible weights; each reports inputs, threshold, value, margin, status and provenance:
+
+| Check | Weight | Value | Pass condition (default limit, editable; default limits are illustrative) | Data needed |
+|---|---|---|---|---|
+| Nozzle pressure vs printer limit | 25 | HB capillary Δp [kPa] | Δp ≤ p_max (600 kPa) | τ₀, K, n of the formulation |
+| Yield stress vs hydrostatic load at the base | 25 | τ₀ / (ρ·g·H) | ≥ safety factor (1.0) | τ₀ and density |
+| Overhang angle vs limit | 20 | max over layers of atan(d/h) | ≤ 45° from vertical | sliced geometry |
+| Minimum feature size vs nozzle | 15 | % of a layer's area removed by a morphological opening with a disc of the nozzle diameter | ≤ 5 % | sliced geometry |
+| Print time and layer count vs limits | 15 | time [min], layers | ≤ 60 min and ≤ 200 layers | toolpath |
+
+Overhang: layers are rasterised on a common grid (cell = min(nozzle/4, extent/250)); d is the largest Euclidean distance
+of a layer's material from the material of the layer below; floating layers count as 90°.
+
+Margin m: (limit − value)/limit for upper limits, value/limit − 1 for lower limits. Status: pass (m ≥ 10 %), marginal
+(0 ≤ m < 10 %), fail (m < 0), with sᵢ = 1, 0.5, 0. A check without data is *not evaluated* and excluded:
+
+  score = 100 · Σ wᵢ·sᵢ / Σ wᵢ (over evaluated checks), shown as "based on N of 5 checks".
+
+The limiting check is the one with the lowest sᵢ (then the smallest margin); the interface shows how to improve it.
+
+### Exports
+* **STL** (binary) of the visible geometry objects.
+* **G-code** from the generated toolpath: G21/G90/M83, G0 travel and G1 moves with relative E per segment
+  (piston: plunger mm = segment length × bead area / A_barrel; screw: revolutions = segment volume / displacement per rev),
+  header comments with method, layers, time, the manufacturability index and its label. Validate on the printer.

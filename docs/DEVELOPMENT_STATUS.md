@@ -4,7 +4,7 @@ Branch: `development` (R7/R8 work on branch `ali` — see `docs/DESIGN_DECISIONS
 
 ## Change request — faba bean, three modules (branch `ali`)
 
-Changelog (one commit per step; the app builds and runs after each):
+Changelog (one commit per step; the app builds and runs after each). Done-check: pytest, vitest, typecheck and build pass; `e2e/demo-walkthrough.mjs` (16/16) and `e2e/twin-molecules-smoke.mjs` (6/6) pass with the faba bean demo and the three-module navigation; no word-level references to pea protein remain in code or docs outside this changelog.
 
 | Step | Status | Summary |
 |---|---|---|
@@ -12,7 +12,7 @@ Changelog (one commit per step; the app builds and runs after each):
 | 2 Three modules (Materials / Process / Print) | done | Navigation generated from `frontend/src/lib/modules.ts` (routes, model tree, dashboard module cards, breadcrumb, Home ribbon). Synthea Optimize removed as a module; optimiser lives in Materials. Extraction Review is a deep link (`/papers?tab=review`). Restored a semantic `<main>` element and updated the assistant step, so `e2e/demo-walkthrough.mjs` passes again (16/16). |
 | 3 Synthea Materials | done | Batch PDF import with automatic extraction into the review queue; GAB sorption and Fourier conduction templates (with power law, Herschel–Bulkley, Arrhenius, first-order kinetics); Models page = table of every extracted equation and registry model (formula, variables, units, parameters, validity, source, status); "Summarize all PDFs" library report (property table, equations, key-number ranges, disagreements side by side; optional Claude narrative with untraceable numbers masked; JSON/PDF export); Formulation: sensory & technical profile and ingredient interaction panel (rules R1–R5, cited interaction records, Molecules scenes), "To process". Schema migration 4 (scenes). |
 | 4 Synthea Process | done | Sausage-line units (hydration, chopper, HME with cooling die, stuffer/casing, cooking, chiller); Digital Twin study opened from heating units with results flowing back; technical outputs with provenance (cooking loss/yield not computed without data); Texture Class IDs TX-01…TX-05 from measured TPA, approved records or the GP surrogate (ranges for uncertain cases); saved runs compared side by side; optimized product for Synthea Print. Schema migration 5 (process_runs). |
-| 5 Synthea Print | planned | |
+| 5 Synthea Print | done | Geometry editor (sketches extruded in z, primitives, STL import) with mesh slicing for arbitrary shapes; piston and screw extrusion models (HB nozzle pressure; not computed without rheology); Prototype Manufacturability Score from five weighted checks ("compatibility index — not a success probability", based on N of 5 checks, limiting check with advice); STL and G-code export (desktop dialog types); formulation from Materials and optimized product from Process. |
 
 ## Phase 2 — Desktop scientific workstation (in progress)
 

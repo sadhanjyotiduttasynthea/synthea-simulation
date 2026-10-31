@@ -19,7 +19,7 @@ labelled as *measured*, *literature*, *calculated*, *predicted*, *illustrative*,
 |---|---|---|---|
 | **Synthea Materials** | Libraries, Papers, Extraction Review, Models, Materials, Formulation, Optimizer, Molecules | Builds the faba bean ingredient knowledge base from uploaded research PDFs (batch import, extraction → human review → library records with paper and page; paper summaries; "Summarize all PDFs" library report with consolidated tables, equations and disagreements), lists every extracted equation/model (power law, Herschel–Bulkley, Arrhenius, first-order kinetics, GAB, Fourier), shows a sourced sensory & technical profile and an ingredient interaction panel for the formulation, keeps the ingredient table with provenance, and runs the virtual formulation lab and the optimiser (cost / protein / processing constraints, Pareto front, infeasibility diagnosis). Molecular structures feed computed properties into the libraries. | PyMuPDF extraction + rule-based extractor; linear mass balance; EU energy factors; Choi & Okos (1986); LP (HiGHS via SciPy), ε-constraint Pareto front, elastic LP, Monte Carlo; RDKit ETKDG + MMFF94 |
 | **Synthea Process** | Process Simulator, Digital Twin | Plant-based sausage line (hydration, emulsifying/chopping, high-moisture extrusion, stuffing/casing, cooking, chilling) with mass and energy balances, residence times, heat duties and operating cost; heating units open 2-D Digital Twin studies (heat + denaturation kinetics) whose results flow back; technical outputs with provenance; Texture Class IDs TX-01…TX-05 from measured TPA, approved records or the GP surrogate; side-by-side runs and the optimized product sent to Print. | Steady-state lumped flowsheet; HB laminar flow; finite-volume / Q4 finite-element 2-D solvers (NumPy/SciPy) |
-| **Synthea Print** | Geometry, 3D Printing Lab | Prototype geometry, toolpath generation (perimeters + ±45° infill), animated printing, print time, material use, required flow and nozzle pressure when rheology is known. | Polygon offset + scan-line fill; bead geometry Q = w·h·v; HB capillary flow |
+| **Synthea Print** | Geometry, 3D Printing Lab | Prototype geometry drawn in the Geometry editor or imported as STL and sliced into toolpaths (perimeters + ±45° infill); piston or screw extrusion with its own flow/pressure model; Prototype Manufacturability Score (compatibility index from five weighted checks — not a success probability); STL and G-code export; uses the formulation from Materials and the optimized product from Process. | Mesh slicing; polygon offset + scan-line fill; bead geometry Q = w·h·v; HB capillary flow; raster overhang and thin-feature analysis |
 
 Shared pages: Dashboard, Global Definitions, Experiments (records, DoE → active learning, cost-reduction calculator),
 Reports and Settings. The optimiser is part of Synthea Materials (there is no separate "Optimize" module). The navigation
@@ -106,7 +106,10 @@ The whole demo runs without paid services. Run `node e2e/demo-walkthrough.mjs` (
 * Surrogate models report leave-one-out Q², uncertainty bands and extrapolation distance. The synthetic demo-data
   generator is clearly labelled and can be removed in one click.
 * The process simulator uses lumped steady-state balances. It is **not** CFD or multiphysics.
-* Printing success probability is **not** predicted.
+* Printing success probability is **not** predicted. The Prototype Manufacturability Score is a compatibility index from
+  named checks with visible weights; checks without data are excluded and the score states on how many checks it is based.
+* Texture Class IDs (TX-01…TX-05) use an illustrative, documented convention; a class is only assigned from measured TPA,
+  approved records or the GP surrogate with its uncertainty band.
 * Cost-saving figures are scenario calculations from user inputs, not measured outcomes.
 
 See [`docs/SCIENTIFIC_MODELS.md`](docs/SCIENTIFIC_MODELS.md) for equations, assumptions and validity ranges.
