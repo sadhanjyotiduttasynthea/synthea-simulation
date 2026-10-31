@@ -10,7 +10,7 @@ Branch: `development`
 | R2 Global scientific library manager | done |
 | R3 Research-paper PDF ingestion | done |
 | R4 AI scientific extraction & review | done |
-| R5 Scientific model registry | planned |
+| R5 Scientific model registry | done |
 | R6 Geometry editor | planned |
 | R7 Molecular visualization | planned |
 | R8 Digital twin, solvers, results | planned |
@@ -46,6 +46,22 @@ Branch: `development`
   idempotent; renormalisation pass when the unit catalogue changes.
 - Overview page redesigned around the knowledge → simulation pipeline (cost KPIs removed from the overview).
 - Tests: +5 backend tests (units, migration idempotence, coexistence/conflicts, history/deprecation, export/import).
+
+### R5 — Scientific model registry
+- Model records: name, template, LaTeX display form (KaTeX), machine-readable expression for the restricted parser,
+  dependent/independent variables and parameters with units, constants, material, experimental conditions, validity
+  ranges, source (paper, page, table row, passage), fit quality, limitations, validation results, version history.
+- Templates: Herschel–Bulkley, power law, Newtonian, Arrhenius viscosity, first-order kinetics with Arrhenius rate
+  constant, linear temperature dependence; custom equations.
+- Dimensional validation with pint (exponent-dependent units such as Pa·sⁿ handled; `exp/log` arguments must be
+  dimensionless); approval refused when the check fails; undeclared symbols rejected.
+- Status workflow extracted → reviewed → approved for calculation → validated (requires attached comparison with data)
+  → deprecated; editing an approved model resets it to reviewed.
+- Evaluation API refuses non-approved models and out-of-range inputs unless extrapolation is explicitly allowed (then
+  flagged); curves show validated range vs extrapolation; overlay of coexisting models (e.g. HB fits at 10/15/20 % w/w).
+- Validation: paste observations → RMSE, MAE, R², MAPE, parity plot; attached to the model.
+- Resolver (internal scientific model API, `/api/science/resolve`): approved models and records for a material and
+  quantity ranked by condition distance with exact-match flag; explains when experimental characterisation is needed.
 
 ### R4 — Scientific extraction and human review
 - Workflow: PDF → text/tables → extractor → structured candidates → source verification → human review → approved

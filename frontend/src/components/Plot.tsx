@@ -18,10 +18,10 @@ export function Plot({ data, layout, height = 300, className, config }: { data: 
       const fg = dark ? '#d4d4d4' : '#262626'
       const grid = dark ? '#2b2f36' : '#e5e7eb'
       const base: Partial<Layout> = {
-        height, margin: { l: 56, r: 16, t: 28, b: 46 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+        height, margin: { l: 56, r: 16, t: 28, b: 64 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
         font: { family: 'Inter, system-ui, sans-serif', size: 11, color: fg },
         colorway: ['#e11d48', '#0891b2', '#525252', '#f59e0b', '#7c3aed', '#16a34a', '#be185d', '#0e7490'],
-        legend: { orientation: 'h', y: -0.22, font: { size: 10 } },
+        legend: { orientation: 'h', y: -0.32, yanchor: 'top', font: { size: 10 } },
         ...layout,
       }
       for (const ax of ['xaxis', 'yaxis', 'xaxis2', 'yaxis2'] as const) {
