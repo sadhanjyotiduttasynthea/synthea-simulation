@@ -6,6 +6,7 @@ import * as THREE from 'three'
 import { Alert, Button, Field, KV, NumInput, PageHeader, Panel, Prov, Select, Spinner, Stat } from '../components/ui'
 import { api, readFile } from '../lib/api'
 import { fmt } from '../lib/format'
+import type { GeoObject } from '../lib/geometry'
 import { useActiveFormulation, useResults, useStore } from '../store'
 
 interface PrintParams {
@@ -47,6 +48,22 @@ export default function Printing() {
   const results = useResults()
   const [p, setP] = useState<PrintParams>(() => ({ ...DEFAULTS, ...((project?.print_settings as Partial<PrintParams>) ?? {}) }))
   const [formId, setFormId] = useState<string | undefined>(active?.id)
+  const [rheoSrc, setRheoSrc] = useState<string>('formulation')
+  const [hbModels, setHbModels] = useState<{ id: string; name: string; template?: string; status: string }[]>([])
+  const [geoObjs, setGeoObjs] = useState<GeoObject[]>([])
+  useEffect(() => {
+    api.get<typeof hbModels>('/api/sci-models').then((ms) => setHbModels(ms.filter((m) => ['herschel_bulkley', 'power_law', 'newtonian'].includes(m.template ?? '') && ['approved', 'validated'].includes(m.status))))
+    if (project) api.get<{ objects: GeoObject[] }>(`/api/geometries?project_id=${project.id}`).then((g) => setGeoObjs(g.objects.filter((o) => ['cuboid', 'cylinder', 'extrusion', 'polygon'].includes(o.kind))))
+  }, [project])
+  const fromGeometry = (id: string) => {
+    const o = geoObjs.find((x) => x.id === id)
+    if (!o) return
+    const next = o.kind === 'cuboid' ? { ...p, shape: 'cube', geometry: { ...p.geometry, width: o.dims.width, depth: o.dims.depth, height: o.dims.height } }
+      : o.kind === 'cylinder' ? { ...p, shape: 'cylinder', geometry: { ...p.geometry, diameter: 2 * o.dims.radius, height: o.dims.height } }
+      : { ...p, shape: 'custom', geometry: { ...p.geometry, polygon: o.points ?? [], height: o.dims.height ?? 10 } }
+    setP(next)
+    generate(next)
+  }
   const [res, setRes] = useState<PrintResult | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -67,8 +84,8 @@ export default function Printing() {
     setBusy(true)
     setErr(null)
     try {
-      const rheo = form?.rheology && form.rheology.yield_stress_pa !== null ? { ...form.rheology, source: `${form.rheology.data_type}: ${form.rheology.source || 'formulation record'}` } : null
-      const r = await api.post<PrintResult>('/api/print/toolpath', { ...params, lines: form?.lines ?? [], rheology: rheo })
+      const rheo = rheoSrc === 'formulation' && form?.rheology && form.rheology.yield_stress_pa !== null ? { ...form.rheology, source: `${form.rheology.data_type}: ${form.rheology.source || 'formulation record'}` } : null
+      const r = await api.post<PrintResult>('/api/print/toolpath', { ...params, lines: form?.lines ?? [], rheology: rheo, rheology_model_id: rheoSrc !== 'formulation' ? rheoSrc : undefined })
       setRes(r)
       simTime.current = 0
       setProgress(0)
@@ -84,7 +101,7 @@ export default function Printing() {
       setBusy(false)
     }
   }
-  useEffect(() => { generate() }, [form?.id])  // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { generate() }, [form?.id, rheoSrc])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const g = (k: keyof PrintParams['geometry'], v: number | null) => setP({ ...p, geometry: { ...p.geometry, [k]: v ?? 0 } })
   const num = (k: keyof PrintParams, v: number | null) => setP({ ...p, [k]: v })
@@ -128,10 +145,17 @@ export default function Printing() {
           <Panel title="Material">
             <Field label="Formulation"><Select value={form?.id ?? ''} onChange={(e) => setFormId(e.target.value)}>{formulations.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</Select></Field>
             <div className="mt-2 text-[11px]">Rheology: {form?.rheology && form.rheology.yield_stress_pa !== null ? <><Prov kind={form.rheology.data_type} /> τ₀ {form.rheology.yield_stress_pa} Pa · K {form.rheology.consistency_index_pa_sn} · n {form.rheology.flow_behaviour_index}</> : <Prov kind="missing" />}</div>
-            <p className="mt-1 text-[10px] text-neutral-500">Density for mass calculation: Choi–Okos at extrusion temperature (calculated).</p>
+            <Field label="Rheology source for nozzle calculations" className="mt-2">
+              <Select value={rheoSrc} onChange={(e) => setRheoSrc(e.target.value)}>
+                <option value="formulation">formulation record (measured HB)</option>
+                {hbModels.map((m) => <option key={m.id} value={m.id}>approved model: {m.name}</option>)}
+              </Select>
+            </Field>
+            <p className="mt-1 text-[10px] text-neutral-500">Density for mass calculation: Choi–Okos at extrusion temperature (calculated). Nozzle results outside the model's validated shear-rate range are flagged.</p>
           </Panel>
           <Panel title="Geometry">
             <div className="space-y-2">
+              {geoObjs.length > 0 && <Field label="From project geometry"><Select value="" onChange={(e) => fromGeometry(e.target.value)}><option value="">— choose an object —</option>{geoObjs.map((o) => <option key={o.id} value={o.id}>{o.name} ({o.kind})</option>)}</Select></Field>}
               <Field label="Shape"><Select value={p.shape} onChange={(e) => setP({ ...p, shape: e.target.value })}>{Object.entries(SHAPES).map(([k, v]) => <option key={k} value={k} disabled={k === 'custom' && !p.geometry.polygon}>{v}</option>)}</Select></Field>
               <div className="grid grid-cols-2 gap-2">
                 {(p.shape === 'cube' || p.shape === 'pyramid') && <><Field label="Width [mm]"><NumInput value={p.geometry.width} onChange={(v) => g('width', v)} /></Field><Field label="Depth [mm]"><NumInput value={p.geometry.depth} onChange={(v) => g('depth', v)} /></Field></>}

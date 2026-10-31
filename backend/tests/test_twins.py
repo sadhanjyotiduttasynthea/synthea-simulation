@@ -116,3 +116,18 @@ def test_kinetics_coupled_only_with_approved_model(client):
     s = client.post(f"/api/twins/{t['id']}/run").json()
     assert 0 < s["reaction"]["mean"] < 1
     assert s["reaction"]["centre"] >= s["reaction"]["mean"] - 1e-9  # the cooler centre denatures least
+
+
+def test_demo_pipeline_end_to_end(client):
+    r = client.post("/api/admin/demo-pipeline", json={}).json()
+    assert len(r["studies"]) == 2 and "SYNTHETIC" in r["note"]
+    names = {s["twin"]: s for s in r["studies"]}
+    heat = client.get(f"/api/studies/{names['Snack bar heating with protein denaturation']['study']}").json()
+    assert "reaction" in heat and 0 < heat["reaction"]["mean"] <= 1
+    flow = client.get(f"/api/studies/{names['Extrusion die flow — PPI 15 % w/w, 25 °C']['study']}").json()
+    assert flow["flow"]["wall_shear_rate_1_s"] <= 100
+    src = [p for p in flow["provenance"] if p.get("model_id")][0]
+    model = client.get(f"/api/sci-models/{src['model_id']}").json()
+    assert model["source"]["paper_id"] == r["paper_id"] and model["source"]["page"] == 2  # traceable to the paper page
+    again = client.post("/api/admin/demo-pipeline", json={}).json()
+    assert again["twins_created"] == []  # idempotent

@@ -463,9 +463,10 @@ function ResultsTab({ study, studies, obj, onSelect, onDelete, onCompared }: { s
   const [vk, setVk] = useState<string>('')
   const vkey = views[vk] ? vk : Object.keys(views)[0]
   const view = views[vkey]
-  const [fi, setFi] = useState(0)
+  const [fiRaw, setFi] = useState(0)
   const [playing, setPlaying] = useState(false)
   const nF = field?.res.times.length ?? 0
+  const fi = Math.max(0, Math.min(fiRaw, nF - 1, (view?.frames.length ?? 1) - 1))
   useEffect(() => { setFi(Math.max(0, nF - 1)) }, [study?.id, fk, nF])
   useEffect(() => {
     if (!playing) return
@@ -510,7 +511,7 @@ function ResultsTab({ study, studies, obj, onSelect, onDelete, onCompared }: { s
             {fields.length > 1 && <Select className="w-32" value={field.key} onChange={(e) => setFk(e.target.value)}>{fields.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}</Select>}
             {Object.keys(views).length > 1 && <Select className="w-44" value={vkey} onChange={(e) => setVk(e.target.value)}>{Object.keys(views).map((k) => <option key={k}>{k}</option>)}</Select>}
           </>}>
-            <Plot height={300} data={[{ type: 'heatmap', x: view.x, y: view.y, z: view.frames[fi], zmin: range[0], zmax: range[1], colorscale: CS as unknown as string, colorbar: { title: { text: field.res.unit }, thickness: 12 }, zsmooth: 'best' }, { type: 'contour', x: view.x, y: view.y, z: view.frames[fi], showscale: false, contours: { coloring: 'none', showlabels: true, labelfont: { size: 9, color: '#fff' } }, line: { color: 'rgba(255,255,255,0.6)', width: 1 }, ncontours: 8, hoverinfo: 'skip' }]}
+            <Plot height={300} data={[{ type: 'heatmap', x: view.x, y: view.y, z: view.frames[fi], zmin: range[0], zmax: range[1], colorscale: CS as unknown as string, colorbar: { title: { text: field.res.unit }, thickness: 12 }, zsmooth: 'best' }]}
               layout={{ xaxis: { title: { text: view.xlabel }, scaleanchor: 'y' }, yaxis: { title: { text: view.ylabel } }, margin: { l: 50, r: 10, t: 10, b: 40 } }} />
             <div className="mt-1 flex items-center gap-2 text-xs">
               <Button size="sm" onClick={() => { if (fi >= nF - 1) setFi(0); setPlaying(!playing) }}>{playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}</Button>

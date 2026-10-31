@@ -8,6 +8,7 @@ import { useStore } from '../store'
 import { BottomPanel } from './BottomPanel'
 import { emitCommand, useCommand } from './commands'
 import { FileCommands } from './FileCommands'
+import { AboutDialog } from './AboutDialog'
 import { ModelTree } from './ModelTree'
 import { Ribbon } from './Ribbon'
 import { useWs } from './wsStore'
@@ -96,6 +97,7 @@ export function Workspace({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-full flex-col bg-[#0f1114]">
       <FileCommands />
+      <AboutDialog />
       <div className="flex h-8 shrink-0 items-center gap-2 bg-[#0f1114] px-3 text-neutral-300">
         <Box className="h-4 w-4 text-rose-500" />
         <span className="text-[12.5px] font-semibold tracking-wide text-white">Synthea Simulation</span>

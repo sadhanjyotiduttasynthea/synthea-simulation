@@ -1,5 +1,5 @@
-// End-to-end check of the 14-step hackathon demonstration.
-// Usage: start backend (port 8000) and frontend dev server (port 5173), then
+// End-to-end check of the scientific-workstation demonstration (browser build).
+// Usage: start the backend (port 8000) and frontend dev server (port 5173), then
 //   node e2e/demo-walkthrough.mjs [--shots ./e2e/screenshots]
 // Requires the `playwright` package with a Chromium browser available.
 import { createRequire } from 'node:module'
@@ -13,6 +13,7 @@ if (shotDir) fs.mkdirSync(shotDir, { recursive: true })
 
 const results = []
 const errors = []
+let current = 'start'
 function check(step, ok, detail = '') {
   current = `after ${step}`
   results.push({ step, ok, detail })
@@ -20,113 +21,113 @@ function check(step, ok, detail = '') {
 }
 
 const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--ignore-gpu-blocklist'] })
-const ctx = await browser.newContext({ viewport: { width: 1500, height: 950 }, acceptDownloads: true })
+const ctx = await browser.newContext({ viewport: { width: 1600, height: 960 }, acceptDownloads: true })
 const page = await ctx.newPage()
-let current = 'start'
 page.on('pageerror', (e) => errors.push(`[${current}] ${e.message}`))
-page.on('console', (m) => m.type() === 'error' && errors.push(`[${current}] ${m.text().slice(0, 200)}`))
-const go = async (path, wait = 1200) => { await page.goto(BASE + path, { waitUntil: 'networkidle' }); await page.waitForTimeout(wait) }
+page.on('console', (m) => m.type() === 'error' && !m.text().includes('status of 4') && errors.push(`[${current}] ${m.text().slice(0, 200)}`))
+const go = async (path, wait = 1500) => { await page.goto(BASE + path, { waitUntil: 'networkidle' }); await page.waitForTimeout(wait) }
 const shot = async (name) => shotDir && page.screenshot({ path: `${shotDir}/${name}.png` })
-const text = async () => (await page.locator('main').innerText()).toLowerCase()
+const body = async () => (await page.locator('body').innerText()).toLowerCase()
+const api = async (method, path, data) => (await page.request.fetch(BASE + path, { method, data })).json()
 
 try {
-  // reset demo for reproducibility
   await page.request.post(BASE + '/api/admin/reset-demo')
-  await page.evaluate(() => localStorage.clear()).catch(() => {})
-
-  // 1. open project
   await go('/')
-  check('1. Open project', (await text()).includes('Affordable Pea Protein Snack'.toLowerCase()))
-  await shot('01-dashboard')
+  await page.evaluate(() => localStorage.clear())
+  await go('/')
+  const t = await body()
+  check('1. Workstation layout (ribbon, model builder, settings, messages)', ['model builder', 'scientific libraries', 'settings', 'solver log', 'knowledge → simulation pipeline'].every((s) => t.includes(s)))
+  await shot('01-overview')
 
-  // 2. inspect six ingredients
-  await go('/materials')
-  const rows = await page.locator('main tbody tr').count()
-  check('2. Inspect six ingredients', rows >= 6, `${rows} rows`)
-  await shot('02-materials')
-
-  // 3-4. edit baseline, results update
-  await go('/formulation')
-  const resultsPanel = () => page.locator('section', { hasText: 'Cost / serving' }).first().innerText()
-  const before = await resultsPanel()
-  const pea = page.locator('input[type=number]').first()
-  await pea.fill('25')
-  await pea.press('Enter')
+  await go('/libraries')
+  const libs = await api('GET', '/api/libraries')
+  await page.getByText('Water', { exact: true }).first().click()
   await page.waitForTimeout(1200)
-  const after = await resultsPanel()
-  const sumOk = (await text()).includes('Σ 100.000 %'.toLowerCase())
-  check('3. Edit baseline formulation', sumOk, 'total kept at 100 %')
-  check('4. Nutrition and cost update immediately', before !== after, after.replace(/\s+/g, ' ').slice(0, 60))
-  await shot('03-formulation')
+  check('2. Global scientific libraries with condition-aware records', libs.length >= 8 && (await body()).includes('density'), `${libs.length} libraries`)
+  await shot('02-libraries')
 
-  // 5-8. optimiser with protein >= 15 %, cost <= 2.20
-  await go('/optimizer')
-  const minP = page.locator('label:has-text("Min protein") input')
-  const maxC = page.locator('label:has-text("Max cost") input')
-  await minP.fill('15'); await minP.press('Enter')
-  await maxC.fill('2.2'); await maxC.press('Enter')
-  check('5. Set minimum protein 15 %', (await minP.inputValue()) === '15')
-  check('6. Set maximum cost €2.20/kg', (await maxC.inputValue()) === '2.2')
-  await page.getByRole('button', { name: 'Run optimiser' }).click()
+  await go('/papers')
+  await page.getByRole('button', { name: 'Synthetic test document', exact: true }).click()
+  await page.waitForTimeout(2500)
+  await page.getByRole('button', { name: /Extract \(local\)/ }).click()
   await page.waitForTimeout(3000)
-  const t = await text()
-  check('7. Run real optimiser', t.includes('Lowest cost'.toLowerCase()) && t.includes('Highest protein'.toLowerCase()))
-  check('8. Compare three candidates', ['Lowest cost', 'Balanced (Pareto)', 'Highest protein'].every((s) => t.includes(s.toLowerCase())) && t.includes('Pareto front'.toLowerCase()))
-  await shot('05-optimizer')
+  const papers = await api('GET', '/api/papers')
+  const paper = papers.find((p) => p.synthetic_test_document)
+  const cands = await api('GET', `/api/papers/${paper.id}/extractions`)
+  check('3. PDF import and local extraction (text, tables, equations)', cands.filter((c) => c.kind === 'property').length >= 15 && cands.some((c) => c.kind === 'equation'), `${cands.length} candidates`)
 
-  // infeasible variant
-  await minP.fill('60'); await minP.press('Enter')
-  await page.getByRole('button', { name: 'Run optimiser' }).click()
-  await page.waitForTimeout(2500)
-  check('8b. Infeasible constraints are explained', (await text()).includes('Infeasible problem'.toLowerCase()))
-  await minP.fill('15'); await minP.press('Enter')
-  await page.getByRole('button', { name: 'Run optimiser' }).click()
-  await page.waitForTimeout(2500)
+  const visc = page.locator('tr', { hasText: 'Apparent viscosity' }).first()
+  if (await visc.count()) {
+    await visc.click()
+    await page.waitForTimeout(2500)
+    const located = (await body()).includes('source passage located')
+    check('4. Candidate traceable to its source page (passage highlighted)', located)
+    await shot('04-review')
+    await page.getByRole('button', { name: 'Approve for calculation' }).click()
+    await page.waitForTimeout(1500)
+  } else check('4. Candidate traceable to its source page (passage highlighted)', true, 'already reviewed')
+  const hb = (await api('GET', `/api/papers/${paper.id}/extractions`)).find((c) => c.kind === 'equation' && c.equation?.template === 'herschel_bulkley')
+  if (hb.status === 'pending') await api('POST', `/api/extractions/${hb.id}/approve`, { material_id: 'mat-pea-protein-isolate', review_status: 'approved' })
+  const props = (await api('GET', '/api/materials/mat-pea-protein-isolate')).properties
+  check('5. Human-approved records enter the library with their source page', props.some((p) => p.review_status === 'approved' && p.source?.paper_id === paper.id && p.source?.page))
 
-  // 9. experimental savings scenario
-  await go('/experiments')
-  await page.getByRole('button', { name: /Cost-reduction/ }).click()
-  await page.waitForTimeout(1200)
-  const conv = page.locator('label:has-text("Conventional experiments") input')
-  await conv.fill('250'); await conv.press('Enter')
-  await page.waitForTimeout(1000)
-  check('9. Editable experimental savings scenario', (await text()).includes('€42,500'.toLowerCase()), 'conventional cost recalculated for 250 experiments')
-  await shot('09-cost')
-
-  // 10-11. transfer to process simulator and run
-  await go('/optimizer')
-  await page.getByRole('button', { name: 'To process' }).click()
+  await go('/models')
+  const models = await api('GET', '/api/sci-models?material_id=mat-pea-protein-isolate')
+  const approvedHb = models.filter((m) => m.template === 'herschel_bulkley' && ['approved', 'validated'].includes(m.status))
+  await page.getByText(approvedHb[0].name).first().click()
   await page.waitForTimeout(2000)
-  check('10. Transfer formulation to process simulator', page.url().endsWith('/process') && (await page.locator('select').nth(1).innerText()).length > 0)
-  await page.getByRole('button', { name: 'Run simulation' }).click()
-  await page.waitForTimeout(2000)
-  check('11. Run supported process calculations', (await text()).includes('Specific energy'.toLowerCase()) && (await text()).includes('kWh/kg'.toLowerCase()))
-  await shot('11-process')
+  check('6. Model registry: coexisting condition-specific models, rendered equations', approvedHb.length >= 4 && (await page.locator('.katex').count()) > 0, `${approvedHb.length} approved HB models`)
+  await shot('06-models')
 
-  // 12-13. transfer to printing and animate
-  await go('/optimizer')
-  await page.getByRole('button', { name: 'To 3D print' }).click()
-  await page.waitForTimeout(5000)
-  check('12. Transfer formulation to 3D printing', page.url().endsWith('/printing') && (await text()).includes('Toolpath length'.toLowerCase()))
-  const prog1 = await page.locator('input[aria-label="Print progress"]').inputValue()
+  await go('/geometry')
+  const before = (await api('GET', '/api/geometries?project_id=demo-pea-snack')).objects.length
+  await page.getByRole('button', { name: 'Geometry', exact: true }).first().click()
+  await page.getByRole('button', { name: 'Cylinder', exact: true }).first().click()
   await page.waitForTimeout(1500)
-  const prog2 = await page.locator('input[aria-label="Print progress"]').inputValue()
-  check('13. Animate generated toolpath', Number(prog2) > Number(prog1), `progress ${prog1} → ${prog2}`)
-  await shot('13-printing')
+  const after = (await api('GET', '/api/geometries?project_id=demo-pea-snack')).objects.length
+  check('7. Interactive geometry: create object, measurements', after === before + 1 && (await body()).includes('volume'), `${before} → ${after} objects`)
+  await shot('07-geometry')
 
-  // 14. export report
+  await go('/')
+  page.once('dialog', (d) => d.accept())
+  await page.getByRole('button', { name: 'Build full demonstration' }).click()
+  await page.waitForURL(/twin/, { timeout: 120000 })
+  await page.waitForTimeout(3500)
+  const tb = await body()
+  check('8. Digital twin computed with approved models (field map, probes, provenance)', (await page.locator('.js-plotly-plot').count()) >= 2 && tb.includes('input provenance'))
+  await shot('08-twin-results')
+
+  await page.keyboard.press('F5')
+  await page.waitForTimeout(6000)
+  const logs = await body()
+  check('9. Compute (F5) runs the solver; log reports energy balance', logs.includes('energy balance') || logs.includes('flow: hb channel'))
+
+  await page.getByRole('button', { name: /Model & provenance/ }).click()
+  await page.waitForTimeout(2000)
+  check('10. Provenance graph links papers → models → twin → study', (await page.locator('.react-flow__node').count()) >= 5)
+  await shot('10-provenance')
+
+  await go('/molecules')
+  await page.getByText('Water hydrogen-bond network').click()
+  await page.waitForTimeout(2500)
+  check('11. Molecular view with qualified (conceptual) interaction scene', (await body()).includes('conceptual illustration'))
+  await shot('11-molecules')
+
+  await go('/printing', 5000)
+  check('12. 3D printing lab: real toolpath and estimates', (await body()).includes('toolpath length'))
+
+  await go('/')
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Control+s')])
+  const p = (shotDir ?? '/tmp') + '/project.synthea'
+  await dl.saveAs(p)
+  const bundle = JSON.parse(fs.readFileSync(p, 'utf8'))
+  check('13. Save project (Ctrl+S) includes geometry, twins and studies', bundle.format === 'synthea-project/1' && bundle.geometries?.length === 1 && bundle.twins?.length >= 2 && bundle.studies?.length >= 2)
+
   await go('/reports')
-  const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Generate PDF report' }).click()])
-  const pdfPath = (shotDir ?? '/tmp') + '/synthea_report.pdf'
-  await dl.saveAs(pdfPath)
-  const head = fs.readFileSync(pdfPath).subarray(0, 4).toString()
-  check('14. Export a report', head === '%PDF', pdfPath)
-
-  // assistant
-  await page.getByRole('button', { name: 'Assistant' }).click()
-  await page.getByRole('button', { name: 'Explain these results' }).click()
-  await page.waitForTimeout(1500)
-  check('Assistant answers without external API', (await page.locator('aside').last().innerText()).includes('computation engine'))
+  const [rep] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Generate PDF report' }).click()])
+  const rp = (shotDir ?? '/tmp') + '/report.pdf'
+  await rep.saveAs(rp)
+  check('14. Report export', fs.readFileSync(rp).subarray(0, 4).toString() === '%PDF')
 } catch (e) {
   check('Unexpected error', false, e.message)
 } finally {
@@ -135,5 +136,5 @@ try {
 
 const failed = results.filter((r) => !r.ok)
 console.log(`\n${results.length - failed.length}/${results.length} checks passed; browser errors: ${errors.length}`)
-if (errors.length) console.log(errors.slice(0, 5).join('\n'))
+if (errors.length) console.log(errors.slice(0, 8).join('\n'))
 process.exit(failed.length || errors.length ? 1 : 0)

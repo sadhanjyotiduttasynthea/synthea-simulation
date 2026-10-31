@@ -50,5 +50,15 @@ export async function saveFile(defaultName: string, data: Blob | string): Promis
 
 /** Forward native menu events (emitted by the Rust shell as "menu") to the command bus. */
 export async function bindNativeMenu() {
-  await listen<string>('menu', (e) => emitCommand(e.payload))
+  await listen<string>('menu', (e) => {
+    const [id, arg] = e.payload.split(':')
+    emitCommand(id, arg)
+  })
+}
+
+export async function engineInfo(): Promise<{ version: string; data_dir: string; url: string; log: string[] }> {
+  const { invoke } = await import('@tauri-apps/api/core')
+  const info = await invoke<{ version: string; data_dir: string; url: string }>('backend_info')
+  const log = await invoke<string[]>('backend_log')
+  return { ...info, log }
 }

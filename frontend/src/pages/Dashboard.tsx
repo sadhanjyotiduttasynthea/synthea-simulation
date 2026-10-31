@@ -9,6 +9,7 @@ import type { Project } from '../lib/types'
 import { useActiveFormulation, useResults, useStore } from '../store'
 import { emitCommand } from '../workspace/commands'
 import { refreshTree } from '../workspace/ModelTree'
+import { log } from '../workspace/wsStore'
 
 interface Summary {
   libraries: number; materials: number; properties: { total: number; approved: number; reviewed: number; extracted: number }
@@ -29,6 +30,21 @@ export default function Dashboard() {
   const nav = useNavigate()
   const { result } = useEvaluation(active?.lines, project?.settings.serving_size_g ?? 30)
   const [s, setS] = useState<Summary | null>(null)
+  const [demoBusy, setDemoBusy] = useState(false)
+  const buildDemo = async () => {
+    if (!confirm('Build the demonstration from the SYNTHETIC test document? It imports the document, approves extracted values and equations for pea protein isolate (as a reviewer would), creates two digital twins and computes them. All values are invented for software testing.')) return
+    setDemoBusy(true)
+    try {
+      const r = await api.post<{ approved: string[]; studies: { twin: string; study: string; warnings: string[] }[] }>('/api/admin/demo-pipeline', { project_id: project?.id })
+      log('success', 'demo', `Demonstration built: ${r.approved.length} candidates approved, ${r.studies.length} studies computed (synthetic test document).`)
+      r.studies.forEach((x) => x.warnings.forEach((w) => log('warn', 'demo', `${x.twin}: ${w}`)))
+      refreshTree()
+      setS(await api.get<Summary>(`/api/workspace/summary?project_id=${project!.id}`))
+      nav('/twin?tab=results')
+    } catch (e) {
+      toast((e as Error).message, 'error')
+    } finally { setDemoBusy(false) }
+  }
   useEffect(() => { if (project) api.get<Summary>(`/api/workspace/summary?project_id=${project.id}`).then(setS) }, [project])
   useEffect(() => { setAssistant('overview', { summary: s, result }) }, [s, result, setAssistant])
   if (!project) return null
@@ -77,7 +93,8 @@ export default function Dashboard() {
         </>}
       />
 
-      <Panel title="Knowledge → simulation pipeline" subtitle="Every simulation input traces back to an approved library record or model, and from there to its source page.">
+      <Panel title="Knowledge → simulation pipeline" subtitle="Every simulation input traces back to an approved library record or model, and from there to its source page."
+        actions={<Button size="sm" variant="primary" loading={demoBusy} onClick={buildDemo}>Build full demonstration</Button>}>
         <div className="flex flex-wrap items-stretch gap-1.5">
           {pipeline.map((p, i) => (
             <div key={p.label} className="flex items-center gap-1.5">

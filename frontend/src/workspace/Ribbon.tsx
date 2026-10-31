@@ -1,6 +1,6 @@
 import {
   Atom, Beaker, BookOpen, Bot, Box, Boxes, Circle, Cylinder, FileDown, FileInput, FilePlus2, FileText, FlaskConical, FolderOpen, Gauge, Grid3x3,
-  Hexagon, Home, Layers, LayoutPanelLeft, LibraryBig, LineChart, Moon, Network, PanelBottom, PanelLeft, PanelRight, Play, Plus, Printer, Ruler,
+  Hexagon, Home, Info, Layers, LayoutPanelLeft, LibraryBig, LineChart, Moon, Network, PanelBottom, PanelLeft, PanelRight, Play, Plus, Printer, Ruler,
   Save, SaveAll, Scissors, ScrollText, Sigma, Sparkles, Square, Thermometer, Upload, Waves, Wind, type LucideIcon,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -28,6 +28,10 @@ const TABS: { id: string; label: string; groups: Group[] }[] = [
     { name: 'Export', tools: [
       { label: 'Report', icon: FileDown, to: '/reports' },
       { label: 'STL', icon: FileDown, to: '/geometry', cmd: 'geometry.exportStl' },
+    ] },
+    { name: 'Help', tools: [
+      { label: 'About & diagnostics', icon: Info, cmd: 'help.about' },
+      { label: 'Settings', icon: Gauge, to: '/settings' },
     ] },
   ] },
   { id: 'home', label: 'Home', groups: [

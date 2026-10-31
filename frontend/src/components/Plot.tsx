@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Config, Data, Layout } from 'plotly.js-dist-min'
+import type * as Plotly from 'plotly.js-dist-min'
 import { useStore } from '../store'
 
 type PlotlyLib = typeof import('plotly.js-dist-min')
@@ -11,6 +12,7 @@ export function Plot({ data, layout, height = 300, className, config }: { data: 
   const ref = useRef<HTMLDivElement>(null)
   const dark = useStore((s) => s.dark)
   const [err, setErr] = useState<string | null>(null)
+  const queue = useRef<Promise<unknown>>(Promise.resolve())
   useEffect(() => {
     let alive = true
     loadPlotly().then((P) => {
@@ -28,8 +30,15 @@ export function Plot({ data, layout, height = 300, className, config }: { data: 
         const a = (layout?.[ax] ?? (ax.endsWith('2') ? undefined : {})) as Record<string, unknown> | undefined
         if (a) (base as Record<string, unknown>)[ax] = { gridcolor: grid, zerolinecolor: grid, linecolor: grid, ...a }
       }
-      P.react(ref.current, data, base, { displaylogo: false, responsive: true, toImageButtonOptions: { format: 'png', scale: 2 }, modeBarButtonsToRemove: ['lasso2d', 'select2d'], ...config })
-        .catch((e: Error) => setErr(e.message))
+      const el = ref.current
+      // Plotly redraws are not re-entrant: serialise updates per plot and redraw from scratch when the trace structure changes
+      queue.current = queue.current.then(() => {
+        if (!alive || !el.isConnected) return
+        const prev = (el as unknown as { data?: { type?: string }[] }).data
+        const structural = !prev || prev.length !== data.length || prev.some((t, i) => t.type !== (data[i] as { type?: string }).type)
+        const cfg = { displaylogo: false, responsive: true, toImageButtonOptions: { format: 'png' as const, scale: 2 }, modeBarButtonsToRemove: ['lasso2d', 'select2d'] as Plotly.ModeBarDefaultButtons[], ...config }
+        return (structural ? P.newPlot(el, data, base, cfg) : P.react(el, data, base, cfg)).catch((e: Error) => setErr(e.message))
+      })
     })
     return () => { alive = false }
   }, [data, layout, height, dark, config])

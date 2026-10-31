@@ -477,3 +477,12 @@ def dependencies(tid: str):
             node("val", f"Validation: {v['label']}", "validation", f"RMSE {v['rmse']:.3g}")
             edges.append(("results", "val"))
     return {"nodes": nodes, "edges": [{"source": a, "target": b} for a, b in dict.fromkeys(edges)]}
+
+
+@router.post("/admin/demo-pipeline")
+def demo_pipeline(body: dict = Body(default={})):
+    from . import demo
+    try:
+        return demo.build(body.get("project_id", "demo-pea-snack"))
+    except ValueError as e:
+        raise HTTPException(400, str(e))

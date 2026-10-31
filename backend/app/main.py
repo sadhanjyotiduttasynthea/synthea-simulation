@@ -453,6 +453,14 @@ def print_shapes():
 
 @app.post("/api/print/toolpath")
 def toolpath(body: dict = Body(...)):
+    if body.get("rheology_model_id"):
+        from . import sci_registry
+        m = db.get_doc("sci_models", body["rheology_model_id"])
+        if not m or m.get("status") not in sci_registry.USABLE:
+            raise ValueError("Selected rheological model is not approved for calculation.")
+        hb = sci_registry.hb_parameters(m)
+        body["rheology"] = {**hb, "source": f"approved model '{m['name']}' ({(m.get('source') or {}).get('citation', 'no source')})",
+                            "shear_rate_range": (m.get("validity") or {}).get("gamma_dot")}
     if body.get("lines"):
         ev = _evaluate_lines(body["lines"], 30.0, float(body.get("extrusion_temperature_c", 25.0)))
         if ev.get("thermal"):
