@@ -126,7 +126,7 @@ export function Workspace({ children }: { children: ReactNode }) {
               {showBottom && (
                 <>
                   <SepV />
-                  <Panel id="bottom" defaultSize="22" minSize="80px" className="flex flex-col text-neutral-900 dark:text-neutral-100">
+                  <Panel id="bottom" defaultSize="18" minSize="80px" className="flex flex-col text-neutral-900 dark:text-neutral-100">
                     <BottomPanel />
                   </Panel>
                 </>

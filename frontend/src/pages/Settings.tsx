@@ -134,19 +134,46 @@ function Equations() {
 }
 
 function AI() {
+  const { toast } = useStore()
   const [s, setS] = useState<{ llm_available: boolean; model: string | null; mode: string; note: string } | null>(null)
-  useEffect(() => { api.get<typeof s>('/api/assistant/status').then(setS) }, [])
+  const [x, setX] = useState<{ allow_external_ai: boolean; api_key_configured: boolean; model: string; acknowledged_at: string | null } | null>(null)
+  const [ack, setAck] = useState(false)
+  useEffect(() => { api.get<typeof s>('/api/assistant/status').then(setS); api.get<typeof x>('/api/settings/ai').then(setX) }, [])
+  const setAllow = async (allow: boolean) => {
+    try {
+      setX(await api.put<typeof x>('/api/settings/ai', { allow_external_ai: allow, acknowledge_disclosure: ack }))
+      toast(allow ? 'External AI extraction enabled' : 'External AI extraction disabled', 'success')
+    } catch (e) { toast((e as Error).message, 'error') }
+  }
   return (
-    <Panel title="AI assistant configuration">
-      {s && (
-        <div className="space-y-2 text-xs">
-          <div>Mode: <Badge tone={s.llm_available ? 'green' : 'neutral'}>{s.llm_available ? `Claude (${s.model})` : 'Built-in deterministic explainer'}</Badge></div>
-          <p>{s.note}</p>
-          <p>To enable the optional Claude integration, set the environment variable <code className="rounded bg-neutral-100 px-1 dark:bg-neutral-800">ANTHROPIC_API_KEY</code> on the <b>server</b> before starting the backend. The key is never sent to the browser. Optionally set <code className="rounded bg-neutral-100 px-1 dark:bg-neutral-800">SYNTHEA_AI_MODEL</code>.</p>
-          <Alert>The assistant receives only the engine's computed results as context and is instructed never to produce numbers that are not in that context. The platform is fully functional without any external AI service.</Alert>
-        </div>
-      )}
-    </Panel>
+    <div className="grid gap-3 @3xl:grid-cols-2">
+      <Panel title="Scientific assistant">
+        {s && (
+          <div className="space-y-2 text-xs">
+            <div>Mode: <Badge tone={s.llm_available ? 'green' : 'neutral'}>{s.llm_available ? `Claude (${s.model})` : 'Built-in deterministic explainer'}</Badge></div>
+            <p>{s.note}</p>
+            <p>To enable the optional Claude integration, set <code className="rounded bg-neutral-100 px-1 dark:bg-neutral-800">ANTHROPIC_API_KEY</code> in the environment of the compute engine before starting the application. The key never reaches the user interface.</p>
+            <Alert>The assistant receives only engine-computed results as context and is instructed never to produce numbers that are not in that context.</Alert>
+          </div>
+        )}
+      </Panel>
+      <Panel title="AI extraction from research papers">
+        {x && (
+          <div className="space-y-2 text-xs">
+            <div>API key on this machine: {x.api_key_configured ? <Badge tone="green">configured</Badge> : <Badge tone="amber">not configured</Badge>} · model {x.model}</div>
+            <div>External AI extraction: {x.allow_external_ai ? <Badge tone="green">enabled{x.acknowledged_at ? ` (${new Date(x.acknowledged_at).toLocaleDateString()})` : ''}</Badge> : <Badge>disabled (default)</Badge>}</div>
+            <Alert kind="warn" title="Data-transfer disclosure">When AI extraction is used, the <b>full text of the selected paper</b> is sent to the Anthropic API for processing. Original PDFs and library records otherwise stay on this computer. Do not enable this for confidential or unpublished documents unless your organisation permits it. AI output is verified against the source text and always requires human review.</Alert>
+            {!x.allow_external_ai ? (
+              <>
+                <label className="flex items-center gap-2"><input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} />I understand that document text will be transmitted to an external service.</label>
+                <Button size="sm" variant="primary" disabled={!ack} onClick={() => setAllow(true)}>Enable AI extraction</Button>
+              </>
+            ) : <Button size="sm" onClick={() => setAllow(false)}>Disable AI extraction</Button>}
+            <p className="text-neutral-500">The local rule-based extractor and manual entry always remain available without any external service.</p>
+          </div>
+        )}
+      </Panel>
+    </div>
   )
 }
 

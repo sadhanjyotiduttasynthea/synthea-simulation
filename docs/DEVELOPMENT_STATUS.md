@@ -9,7 +9,7 @@ Branch: `development`
 | R1 Desktop & interface architecture | done — Tauri 2 shell, ribbon, model builder, graphics window, settings, messages |
 | R2 Global scientific library manager | done |
 | R3 Research-paper PDF ingestion | done |
-| R4 AI scientific extraction & review | planned |
+| R4 AI scientific extraction & review | done |
 | R5 Scientific model registry | planned |
 | R6 Geometry editor | planned |
 | R7 Molecular visualization | planned |
@@ -46,6 +46,28 @@ Branch: `development`
   idempotent; renormalisation pass when the unit catalogue changes.
 - Overview page redesigned around the knowledge → simulation pipeline (cost KPIs removed from the overview).
 - Tests: +5 backend tests (units, migration idempotence, coexistence/conflicts, history/deprecation, export/import).
+
+### R4 — Scientific extraction and human review
+- Workflow: PDF → text/tables → extractor → structured candidates → source verification → human review → approved
+  library records / registry models. Nothing enters a library without review.
+- Local rule-based extractor (always available, offline): property values with units and ± uncertainty near catalogue
+  aliases (multi-word aliases, value must follow its own alias, symbol-assignment and concentration guards), per-value
+  experimental conditions from the same sentence (never invented), replicate counts, fitted parameters from table headers
+  (τ0, K, n, R², condition columns), equation recognition (Herschel–Bulkley, power law, Arrhenius viscosity, first-order
+  kinetics incl. text-stated models), parameter values with units, stated validity ranges, material and abbreviation
+  detection. Evidence type distinguishes directly reported / fitted / calculated / author prediction / AI-inferred.
+- Optional Claude extraction: only with an API key AND explicit opt-in with a data-transfer disclosure; structured
+  JSON output; verified exactly like local output.
+- Verification: passage must occur on the stated page and the value must occur in the passage; failures are flagged and
+  confidence lowered.
+- Review UI: candidate list (filters, confidence, verification flags, bulk actions), side-by-side source page with the
+  passage highlighted, correction of value/unit/conditions/evidence, LaTeX equation editor with Greek/sub/superscript/unit
+  palette and live KaTeX preview, material matching or creation, approve as *reviewed* or *approved for calculation*,
+  reject with reason, re-open; manual entry fallback (scanned pages, complex notation).
+- Approving a fitted equation creates one condition-specific model per selected parameter set (e.g. four HB models for
+  10/15/20 % w/w and 25/50 °C), linked to the table row and page.
+- Tests: +4 (values/conditions/no false positives, traceable approval and model creation, usage/extrapolation guards,
+  rejection/manual entry/dimension error).
 
 ### R3 — Research-paper PDF ingestion
 - Drag-and-drop / dialog import of multiple PDFs; originals stored locally (`<data dir>/papers`), SHA-256 de-duplication,
