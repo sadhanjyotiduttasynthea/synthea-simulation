@@ -104,3 +104,51 @@ User equations are parsed with Python's `ast` module and evaluated by a whitelis
 variables, + − × ÷ ** %, unary ±, `sqrt exp log log10 sin cos tan tanh abs min max pow`, and the constants `pi` and
 `e`. Attribute access, subscripts, comprehensions, lambdas and other calls are rejected, and large exponents and
 overflow are guarded.
+
+---
+
+# Phase 2 — workstation models
+
+## 12. Units and dimensional consistency
+Property values are normalised to a canonical unit per property kind with *pint* (e.g. mPa·s → Pa·s,
+kJ/(kg·K) → J/(kg·K), K → °C, g/100 g → %). Dimensional mismatches (e.g. a "viscosity" reported in Pa) are
+reported and the value is not converted. Registry models are checked by evaluating the expression with pint
+quantities: parameter and variable units must combine to the declared unit of the dependent variable; arguments of
+`exp`/`log` must be dimensionless; unit exponents that depend on a parameter (K in Pa·sⁿ) use the parameter value.
+
+## 13. Extraction (rule-based, local)
+Candidates are found only where a catalogue alias (multi-word or an unambiguous single word) precedes a number with a
+unit pattern compatible with the property's dimension, before any other property alias. Conditions (temperature,
+concentration % w/w, pH, shear rate, heating rate, frequency) are taken only from the same sentence (shared phrase before
+the first value plus a ≤90-character window after each value); uncertainties are stripped before searching so that
+"± 0.4 °C" is not read as a temperature. Table columns are mapped by header symbol/unit (τ₀, K, n, R², concentration,
+temperature). Equations are classified by their own form (exp → Arrhenius/kinetics, τ with τ₀ → Herschel–Bulkley,
+τ with γ̇ → power law); first-order kinetics stated only in text is also recognised. Verification: the passage must
+occur on the stated page and the value must appear in the passage.
+
+## 14. Finite-volume solvers (digital twins)
+* Discretisation: cell-centred finite volumes on structured meshes — hexahedral (cuboid), axisymmetric annular (r–z,
+  cylinder), spherical shells (sphere); harmonic-mean face conductivities; boundary conditions applied with a
+  half-cell series resistance (convection), half-cell conductance (fixed value) or zero flux (insulated).
+* Time integration: backward Euler (unconditionally stable, first order in time); sparse LU (small meshes) or
+  Jacobi-preconditioned conjugate gradients (SPD systems). Temperature-dependent properties are lagged one step.
+* Energy balance: boundary heat input Σ Q·Δt is compared with the stored energy Σ ρcp·V·ΔT accumulated consistently
+  with the discretisation; reported per study (round-off level).
+* Verification: plane wall with symmetric convection, Bi = 0.5, Fo = 3 — centre temperature within 0.2 % of the
+  exact series solution θ = Σ Cₙ exp(−ζₙ² Fo) cos(ζₙ x/L), ζₙ tan ζₙ = Bi.
+* Kinetics: X_{n+1} = X_n exp(−k(T̄) Δt) per cell with T̄ the step-average temperature (exact for piecewise-constant
+  temperature); evaluated only with approved first-order models and within their validated temperature range.
+* Laminar Herschel–Bulkley channel flow: τ_w from the Rabinowitsch–Mooney relation for the imposed flow rate,
+  τ(r) = τ_w r/R, u(r) = ∫_r^R γ̇(τ) dr (trapezoidal), plug radius τ₀R/τ_w, ΔP = 2τ_wL/R. Fully developed,
+  isothermal, no slip; checks: numerical flow rate equals the imposed one, Newtonian limit gives Hagen–Poiseuille
+  and a parabolic profile.
+* Studies: parametric sweeps re-solve for each value; sensitivity uses one-at-a-time +10 % perturbations and
+  reports S = (ΔY/Y)/(Δp/p) for the centre temperature rise.
+* Experimental comparison: predictions interpolated in time at the observation times; RMSE, bias, MAE, max error, R².
+
+## 15. Molecular structures
+Built-in molecules: RDKit ETKDGv3 embedding (seed 42) + MMFF94 optimisation — computed conformers. Descriptors
+(TPSA, Crippen logP, H-bond donors/acceptors) are estimates. Scenes use standard geometry only (e.g. O···O = 2.76 Å
+tetrahedral hydrogen bonding in ice Ih) and are labelled conceptual; aggregation uses an approved first-order model for
+the denatured fraction when one exists; aggregate shapes come from an off-lattice diffusion-limited-aggregation
+algorithm and are illustrative.

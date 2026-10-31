@@ -2,7 +2,7 @@
 
 Branch: `development`
 
-## Phase 2 — Desktop scientific workstation (in progress)
+## Phase 2 — Desktop scientific workstation
 
 | Milestone | Status |
 |---|---|
@@ -14,7 +14,7 @@ Branch: `development`
 | R6 Geometry editor | done |
 | R7 Molecular visualization | done |
 | R8 Digital twin, solvers, results | done |
-| R9 Desktop packaging & final integration | planned |
+| R9 Desktop packaging & final integration | done (Windows installer built by CI; not run here) |
 
 ### R1 — Desktop & interface architecture
 - COMSOL-inspired workspace: top ribbon (File, Home, Materials, Geometry, Physics, Mesh, Study, Results, AI Assistant)
@@ -46,6 +46,33 @@ Branch: `development`
   idempotent; renormalisation pass when the unit catalogue changes.
 - Overview page redesigned around the knowledge → simulation pipeline (cost KPIs removed from the overview).
 - Tests: +5 backend tests (units, migration idempotence, coexistence/conflicts, history/deprecation, export/import).
+
+### R9 — Desktop packaging and final integration
+- Release desktop build produced in the build environment: `Synthea Simulation_2.0.0_amd64.deb` and `.AppImage`
+  (Linux) with the PyInstaller compute engine bundled as a Tauri sidecar; the release binary was launched under a
+  virtual display and started its own engine with a per-session token and per-user data folder.
+- Windows: `.github/workflows/desktop.yml` builds NSIS/MSI installers on `windows-latest` (sidecar built with
+  `scripts/build_sidecar.py`). Not executed from this session (GitHub CLI token unavailable) — run it from Actions.
+- Fixed a packaging fault found during release verification: PyMuPDF auto-imports optional ONNX layout/OCR helpers
+  (`pymupdf.layout`, `pymupdf4llm` → onnxruntime) whose model files were not bundled, crashing the packaged engine; they
+  are now blocked at import and excluded from the bundle (also removes an onnxruntime telemetry attempt).
+- Startup splash while the engine starts; About & diagnostics dialog (version, data folder, engine log) for error
+  reports; native menu → command bus; Save/Save As/Open with native dialogs; recent files.
+- One-click demonstration pipeline from the synthetic test document; 3-D printing connected to project geometry and
+  approved rheology models (nozzle wall shear rate checked against the model's validated range).
+- Plotly redraws serialised; contour overlay removed after a Plotly crash on recompute.
+- Documentation: README rewritten for the workstation; scientific models §12–15.
+- Tests: 58 backend (pytest), 12 frontend (vitest), 14/14 end-to-end checks, 0 browser errors.
+
+## Known limitations (phase 2)
+- No general 3-D FEM/CFD: spatial solvers cover cuboids, cylinders (axisymmetric) and spheres; flow is fully developed
+  and isothermal; heat and flow are not coupled (no viscous heating).
+- Rule-based extraction is pattern-based: tables without ruled lines, scanned pages and complex notation need manual
+  entry or the optional AI extractor; equations outside the template set need a manually entered expression.
+- Kinetic/rheological models only apply where approved models exist for the material and conditions — by design.
+- The packaged engine is large (~170 MB, SciPy/RDKit/PyMuPDF) and the first launch unpacks it (up to a minute).
+- Molecular scenes are illustrations, not molecular dynamics.
+- macOS packaging is not configured yet (the Tauri/sidecar architecture supports it).
 
 ### R8 — Digital twins, numerical solvers and results
 - Digital twin = geometry object + material (formulation → Choi & Okos T-dependent properties, or library material →

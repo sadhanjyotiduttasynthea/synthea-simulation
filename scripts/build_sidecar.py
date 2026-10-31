@@ -50,6 +50,9 @@ def main():
         "--hidden-import", "sklearn.gaussian_process",
         "--hidden-import", "scipy.optimize",
         "--hidden-import", "pymupdf",
+        "--exclude-module", "pymupdf.layout",
+        "--exclude-module", "pymupdf4llm",
+        "--exclude-module", "onnxruntime",
         os.path.join(BACKEND, "synthea_backend.py"),
     ]
     if sys.platform == "win32":

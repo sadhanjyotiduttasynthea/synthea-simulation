@@ -1,154 +1,120 @@
 # Synthea Simulation
 
-**AI-assisted virtual food formulation and engineering platform** — built for the *Hack the Fork* hackathon.
+**A desktop scientific workstation for food formulation and process engineering** — built for the *Hack the Fork*
+hackathon.
 
-Synthea Simulation helps researchers develop affordable alternative-protein foods with fewer physical experiments. It
-evaluates formulations virtually, optimises them mathematically, recommends the most informative experiments, and
-simulates processing and 3D food printing. Every number comes from a documented computation, and every value is
-labelled as *measured*, *literature*, *calculated*, *predicted*, *illustrative*, *synthetic* or *missing*.
+Synthea Simulation turns research papers into reusable, traceable simulation inputs:
 
-> Six ingredients at ten concentration levels already span 10⁶ unconstrained theoretical combinations; processing
-> parameters multiply this further. These figures illustrate combinatorial complexity, not the number of experiments
-> companies actually run.
+```
+Research papers → extracted properties & equations → human review → global scientific libraries
+→ model registry (approved, unit-checked, range-limited) → digital twins → virtual experiments → experimental validation
+```
 
-![Optimizer](docs/screenshots/optimizer.png)
+Every number used in a simulation can be traced back to an approved library record or model, and from there to the
+page and passage of the paper it came from. Values outside a model's validated range are refused unless extrapolation is
+explicitly allowed, in which case results are flagged.
 
-## The four modules
+![Workspace](docs/screenshots/desktop-workspace.png)
 
-| Module | What it does | Core methods |
-|---|---|---|
-| **Synthea Materials** — *Materials Library, Formulation Studio* | Searchable, editable ingredient database (nutrition, physical, rheology, thermal, economics, evidence, provenance, versioning, import/export). Virtual formulation lab with sliders, locks, automatic rebalancing to 100 %, live nutrition, energy, cost per kg / serving / g protein, charts and comparisons. | Linear mass balance; EU energy factors; Choi & Okos (1986) thermophysical properties |
-| **Synthea Optimize** — *AI Optimizer, Experiments* | Minimum-cost, maximum-protein and processing-compatibility optimisation with nutrient, cost, bound, availability and allergen constraints; Pareto front; infeasibility diagnosis; uncertainty; experiment planning with DoE → active learning; experimental cost-reduction calculator. | LP (HiGHS via SciPy), ε-constraint Pareto front, elastic LP, LP dual sensitivities, Monte Carlo, Gaussian-process regression (scikit-learn), Sobol + maximin design, uncertainty / target-seeking acquisition |
-| **Synthea Process** — *Process Simulator* | Drag-and-drop pilot line (storage, mixer, heater, cooler, pump, pipe, extruder, conveyor, packaging) with mass and energy balances, residence times, heat duties, pump power, pressure drop, throughput and operating cost. | Steady-state lumped flowsheet; Choi & Okos cp/ρ; Herschel–Bulkley laminar flow (Rabinowitsch–Mooney) when rheology is measured |
-| **Synthea Print** — *3D Printing Lab* | Virtual food printer with real toolpath generation (perimeters + ±45° rectilinear infill), animated printhead and layer-by-layer deposition, print time, toolpath length, material use, layer count, required flow, nozzle pressure when rheology is known. | Polygon offset + scan-line fill; bead geometry Q = w·h·v; HB capillary flow |
+## What it does
 
-There is also a **scientific assistant** on every page. It works without any external API using a built-in
-deterministic explainer. A server-side Claude integration is optional. The assistant never generates numbers; it only
-explains numbers produced by the engine. In addition there are **PDF / JSON / CSV reports**, a **scientific model
-registry** with live evaluation, a **safe custom-equation evaluator**, project save/load and dark mode.
+| Area | Capabilities |
+|---|---|
+| **Workstation UI** | Ribbon (File · Home · Materials · Geometry · Physics · Mesh · Study · Results · AI Assistant), Model Builder tree with right-click actions, central graphics/view area, Settings inspector, bottom panel (Results · Plots · Equations · Solver Log · Warnings · AI Assistant · Experimental Data). Resizable/hideable panels (Ctrl+1/2/3) with persisted layout, dark mode, keyboard shortcuts (F5 compute, Ctrl+S / Ctrl+Shift+S / Ctrl+O). |
+| **Scientific libraries** | Multiple global libraries with folders, archive, export/import; one material record shared by several libraries; condition-aware property records (value/range/text, units normalised with *pint*, uncertainty, conditions, method, source page and passage, evidence type, review status, quality indicator, version history); cross-source comparison with conflict warnings — never silent averaging. |
+| **Research papers** | Drag-and-drop PDF import (stored locally), text and table extraction, metadata/DOI/citation detection, page viewer with highlighted source passages. |
+| **Extraction & review** | Local rule-based extractor (values, uncertainties, per-value conditions, table-fitted parameters, equation recognition, validity ranges) plus optional Claude extraction after explicit opt-in. Every candidate is verified against the source text and must be reviewed: correct values/conditions, edit LaTeX with a symbol palette, assign the material, approve or reject. |
+| **Model registry** | Equations in LaTeX (KaTeX) and machine-readable form, parameters with units, dimensional checks, validity ranges, status workflow (extracted → reviewed → approved → validated → deprecated), evaluation curves, overlay of coexisting models, validation against data (RMSE, R², parity plot). |
+| **Geometry** | Points, lines, rectangles, circles, polygons, cuboids, cylinders, spheres, extrusions, STL import/export; transforms, material assignment, analytic and mesh-integrated volume/area; solid/wireframe/transparent views, section plane, measurement, camera presets. |
+| **Molecules** | RDKit-computed conformers of food molecules, PDB/SDF/MOL/XYZ loading, ball-and-stick / space-filling views; interaction scenes labelled *conceptual* unless driven by an approved model (e.g. denaturation kinetics) or textbook relations (Laplace pressure, Stokes velocity). |
+| **Digital twins** | Finite-volume heat conduction (3-D cuboid, axisymmetric cylinder, sphere), mass diffusion, first-order kinetics on the temperature history, laminar Herschel–Bulkley channel flow. Mesh quality, stationary/time-dependent/sweep/sensitivity studies, animated field maps, 3-D section rendering, probes, flow profiles, experimental comparison, provenance graph. |
+| **Formulation & process** (from phase 1) | Formulation Studio, LP optimiser with Pareto front, experiment planning (DoE → GP active learning), process flowsheet, 3-D food-printing toolpaths (shapes from project geometry, nozzle flow from approved rheology models), reports. |
 
-## Quick start
+## Run it
 
-Requirements: Python ≥ 3.11, Node.js ≥ 20.
+### Desktop application (Tauri 2)
+
+The desktop app starts its own local compute engine (a packaged Python process) bound to `127.0.0.1` on a random port
+with a per-session token, stores data in the per-user application folder, and stops the engine on exit.
+
+* **Windows installer:** the [Desktop build workflow](.github/workflows/desktop.yml) builds NSIS (`.exe`) and MSI
+  installers on `windows-latest` (run it from the Actions tab; artifacts are attached to the run).
+* **Linux:** `npx tauri build --bundles deb,appimage` in `desktop/` (verified in the build environment).
+
+Build steps (any OS):
 
 ```bash
-# development (backend on :8000 with reload, frontend on :5173)
+pip install -r backend/requirements.txt pyinstaller
+```
+
+```bash
+python scripts/build_sidecar.py
+```
+
+```bash
+cd frontend && npm ci && cd ../desktop && npm ci && npx tauri build
+```
+
+Development window: `cd desktop && SYNTHEA_DEV_PYTHON=/path/to/python npx tauri dev` (uses the backend sources).
+
+### Browser (development)
+
+```bash
 ./scripts/dev.sh
 ```
 
-Open <http://localhost:5173>.
+Open <http://localhost:5173>. Or run `./scripts/serve.sh` for a single-port build on <http://localhost:8000>.
 
-```bash
-# single-port production-style run (FastAPI serves the built frontend)
-./scripts/serve.sh        # then open http://localhost:8000
-```
+## Demonstration
 
-Manual setup:
+On the **Overview**, press **Build full demonstration**. It imports the bundled **synthetic test document** (every
+page is marked as invented test data), runs the local extractor, approves selected values and equations for pea
+protein isolate as a reviewer would, creates two digital twins and computes them:
 
-```bash
-cd backend
-python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
-.venv/bin/uvicorn app.main:app --port 8000
-```
+1. *Snack bar heating with protein denaturation* — 3-D conduction with temperature-dependent Choi & Okos properties and
+   first-order kinetics from the approved model.
+2. *Extrusion die flow — PPI 15 % w/w, 25 °C* — Herschel–Bulkley channel flow using the approved model fitted at exactly
+   those conditions; raising the flow rate beyond the validated shear-rate range is refused.
 
-```bash
-cd frontend
-npm ci
-npm run dev
-```
-
-The SQLite database is created automatically at `backend/data/synthea.db` and seeded with the demo project. Use
-**Settings → Data → Reset demo data** to restore it.
-
-### Optional: Claude-powered assistant
-
-Set `ANTHROPIC_API_KEY` in the backend environment before starting it (optionally `SYNTHEA_AI_MODEL`). The key stays on
-the server. Without it, everything still works with the built-in explainer.
-
-## Hackathon demo — *Affordable Pea Protein Snack*
-
-| # | Step | Where |
-|---|---|---|
-| 1 | Open the preloaded project | Dashboard (walkthrough checklist) |
-| 2 | Inspect the six ingredients and their provenance | Materials Library |
-| 3–4 | Edit the baseline formulation; nutrition and cost update immediately | Formulation Studio |
-| 5–8 | Protein ≥ 15 %, cost ≤ €2.20/kg → **Run optimiser** → compare *Lowest cost / Balanced (Pareto) / Highest protein*; try protein ≥ 60 % to see the infeasibility diagnosis | AI Optimizer |
-| 9 | Edit the illustrative savings scenario (200 vs 60 experiments, €170, 2 kg, software cost) | Experiments → Cost-reduction calculator |
-| 10–11 | **To process** → **Run simulation** | AI Optimizer → Process Simulator |
-| 12–13 | **To 3D print** → toolpath animates automatically | AI Optimizer → 3D Printing Lab |
-| 14 | **Generate PDF report** (or JSON / CSV) | Reports |
-
-Expected optimiser results with the illustrative demo data: lowest cost 15.0 % protein at €1.268/kg;
-Pareto knee 31.5 % at €2.008/kg; highest protein 34.9 % at the €2.20/kg budget.
-
-The whole demo runs without paid services. Run `node e2e/demo-walkthrough.mjs` (with Playwright available) to check all
-14 steps automatically.
+Then explore: the source page of each value (Research Papers → Extraction & review), coexisting models (Model Registry),
+the provenance graph (Digital Twin → Model & provenance), the molecular views, and paste your own measurements into
+*Compare with experimental data*. The automated check of this walkthrough is `node e2e/demo-walkthrough.mjs`.
 
 ## Scientific integrity
 
-* Ingredient values for the commercial ingredients and **all prices are illustrative demonstration values** and are
-  labelled as such. Water and NaCl constants are standard reference data. No references, measurements or validations
-  are invented.
-* Mixture viscosity and texture are **never** computed by weighted averaging. They are reported as *not predicted*
-  unless measured flow curves (Herschel–Bulkley τ₀, K, n) are entered for a formulation, or a surrogate is trained on
-  recorded experiments.
-* Surrogate models report leave-one-out Q², uncertainty bands and extrapolation distance. The synthetic demo-data
-  generator is clearly labelled and can be removed in one click.
-* The process simulator uses lumped steady-state balances. It is **not** CFD or multiphysics.
-* Printing success probability is **not** predicted.
-* Cost-saving figures are scenario calculations from user inputs, not measured outcomes.
-
-See [`docs/SCIENTIFIC_MODELS.md`](docs/SCIENTIFIC_MODELS.md) for equations, assumptions and validity ranges.
+* Nothing extracted from a paper enters a library without human review; approval as *reviewed* stores a record but only
+  *approved* records and models are used in simulations; *validated* requires an attached comparison with data.
+* Values absent from a paper are never invented; candidates whose passage or value cannot be found on the stated page are
+  flagged. Conflicting reports coexist with their conditions.
+* Solvers are verified (exact plane-wall series solution, energy balance, Newtonian pipe-flow limit) — see
+  [`docs/SCIENTIFIC_MODELS.md`](docs/SCIENTIFIC_MODELS.md). No general 3-D FEM/CFD is claimed.
+* Ingredient values and prices from phase 1 remain marked *illustrative*; the synthetic test document is marked on every
+  page and must never be cited.
+* Research PDFs and records stay on the local machine. External AI is used only after explicit opt-in with a
+  data-transfer disclosure; API keys stay in the compute engine's environment.
 
 ## Architecture
 
 ```
-backend/                    FastAPI + NumPy/SciPy/scikit-learn + SQLite
-  app/main.py               REST API (+ serves frontend/dist in production)
-  app/db.py                 document store (SQLite; JSON documents, portable to PostgreSQL JSONB)
-  app/seed.py               demo project and provenance-labelled ingredient data
-  app/science/              nutrition, thermal (Choi–Okos), rheology (HB), model registry, safe expression parser
-  app/optimize.py           LP optimiser, Pareto front, infeasibility diagnosis, GP-constrained processing optimisation
-  app/surrogate.py          Gaussian-process surrogate with LOO validation
-  app/experiments.py        DoE, active learning, synthetic demo data, cost scenario
-  app/process.py            flowsheet solver
-  app/printing.py           toolpath generator and extrusion calculations
-  app/assistant.py          deterministic explainer + optional Claude integration
-  app/reports.py            PDF report (ReportLab)
-  tests/                    pytest (science, optimiser, API)
-frontend/                   React 19 + TypeScript + Vite + Tailwind v4
-  src/pages/                Dashboard, Materials, Formulation, Optimizer, Process (React Flow),
-                            Printing (React Three Fiber), Experiments, Reports, Settings
-  src/lib/                  API client, formulation rebalancing (vitest), formatting, hooks
-e2e/demo-walkthrough.mjs    Playwright end-to-end check of the 14-step demo
-docs/                       development status, scientific models, screenshots
-.github/workflows/ci.yml    pytest + typecheck + vitest + build on push / PR
+desktop/        Tauri 2 shell (Rust): window, native menus, dialogs, compute-engine sidecar lifecycle
+frontend/       React 19 + TypeScript + Vite + Tailwind; workspace/ (ribbon, model tree, panels, command bus),
+                pages/ (Libraries, Papers, Models, Geometry, Molecules, Twin, …), Three.js/R3F, Plotly, KaTeX
+backend/app/    FastAPI compute engine
+  knowledge.py, science/catalog.py   libraries, materials, condition-aware records, units (pint)
+  papers.py, extraction.py           PDF ingestion (PyMuPDF), extraction and verification
+  sci_registry.py                    model registry, dimensional checks, validity, resolver API
+  solvers.py, twins.py               finite-volume solvers, digital twins, studies, validation
+  molecules.py                       RDKit conformers, structure files, qualified scenes
+  db.py                              SQLite document store with schema migrations
+scripts/        dev/serve scripts, PyInstaller sidecar build
+e2e/            Playwright walkthrough
 ```
 
-## Testing
+Tests: `cd backend && pytest` (58), `cd frontend && npm test` (12), `node e2e/demo-walkthrough.mjs` (14 checks).
+Progress and known limitations: [`docs/DEVELOPMENT_STATUS.md`](docs/DEVELOPMENT_STATUS.md).
 
-```bash
-cd backend
-.venv/bin/pytest -q
-```
-
-```bash
-cd frontend
-npm run typecheck
-npm test
-npx vite build
-```
-
-```bash
-node e2e/demo-walkthrough.mjs   # needs the running app and Playwright
-```
-
-## Screenshots
-
-| Formulation Studio | Process Simulator |
+| Extraction & review | Model registry |
 |---|---|
-| ![](docs/screenshots/formulation.png) | ![](docs/screenshots/process.png) |
-| **3D Printing Lab** | **Experiments: active learning** |
-| ![](docs/screenshots/printing.png) | ![](docs/screenshots/experiments.png) |
-
-Development progress is tracked in [`docs/DEVELOPMENT_STATUS.md`](docs/DEVELOPMENT_STATUS.md).
+| ![](docs/screenshots/extraction-review.png) | ![](docs/screenshots/model-registry.png) |
+| **Digital twin results** | **Molecular view** |
+| ![](docs/screenshots/digital-twin.png) | ![](docs/screenshots/molecules.png) |
