@@ -13,19 +13,22 @@ labelled as *measured*, *literature*, *calculated*, *predicted*, *illustrative*,
 
 ![Optimizer](docs/screenshots/optimizer.png)
 
-## The four modules
+## The three modules
 
-| Module | What it does | Core methods |
-|---|---|---|
-| **Synthea Materials** — *Materials Library, Formulation Studio* | Searchable, editable ingredient database (nutrition, physical, rheology, thermal, economics, evidence, provenance, versioning, import/export). Virtual formulation lab with sliders, locks, automatic rebalancing to 100 %, live nutrition, energy, cost per kg / serving / g protein, charts and comparisons. | Linear mass balance; EU energy factors; Choi & Okos (1986) thermophysical properties |
-| **Synthea Optimize** — *AI Optimizer, Experiments* | Minimum-cost, maximum-protein and processing-compatibility optimisation with nutrient, cost, bound, availability and allergen constraints; Pareto front; infeasibility diagnosis; uncertainty; experiment planning with DoE → active learning; experimental cost-reduction calculator. | LP (HiGHS via SciPy), ε-constraint Pareto front, elastic LP, LP dual sensitivities, Monte Carlo, Gaussian-process regression (scikit-learn), Sobol + maximin design, uncertainty / target-seeking acquisition |
-| **Synthea Process** — *Process Simulator* | Drag-and-drop pilot line (storage, mixer, heater, cooler, pump, pipe, extruder, conveyor, packaging) with mass and energy balances, residence times, heat duties, pump power, pressure drop, throughput and operating cost. | Steady-state lumped flowsheet; Choi & Okos cp/ρ; Herschel–Bulkley laminar flow (Rabinowitsch–Mooney) when rheology is measured |
-| **Synthea Print** — *3D Printing Lab* | Virtual food printer with real toolpath generation (perimeters + ±45° rectilinear infill), animated printhead and layer-by-layer deposition, print time, toolpath length, material use, layer count, required flow, nozzle pressure when rheology is known. | Polygon offset + scan-line fill; bead geometry Q = w·h·v; HB capillary flow |
+| Module | Pages | What it does | Core methods |
+|---|---|---|---|
+| **Synthea Materials** | Libraries, Papers, Extraction Review, Models, Materials, Formulation, Optimizer, Molecules | Builds the faba bean ingredient knowledge base from uploaded research PDFs (extraction → human review → library records with paper and page; paper summaries), keeps the ingredient table with provenance, and runs the virtual formulation lab and the optimiser (cost / protein / processing constraints, Pareto front, infeasibility diagnosis). Molecular structures feed computed properties into the libraries. | PyMuPDF extraction + rule-based extractor; linear mass balance; EU energy factors; Choi & Okos (1986); LP (HiGHS via SciPy), ε-constraint Pareto front, elastic LP, Monte Carlo; RDKit ETKDG + MMFF94 |
+| **Synthea Process** | Process Simulator, Digital Twin | Plant-based sausage line flowsheet with mass and energy balances, residence times, heat duties, pump power, pressure drop and operating cost; 2-D digital twins of the product cross-section (heat + denaturation kinetics, Herschel–Bulkley duct flow, solid mechanics, diffusion) with traceable inputs. | Steady-state lumped flowsheet; HB laminar flow; finite-volume / Q4 finite-element 2-D solvers (NumPy/SciPy) |
+| **Synthea Print** | Geometry, 3D Printing Lab | Prototype geometry, toolpath generation (perimeters + ±45° infill), animated printing, print time, material use, required flow and nozzle pressure when rheology is known. | Polygon offset + scan-line fill; bead geometry Q = w·h·v; HB capillary flow |
 
-**Digital twin (branch `ali`)** — 2-D cross-section models (any shape, editable) solved with NumPy/SciPy: heat transfer
+Shared pages: Dashboard, Global Definitions, Experiments (records, DoE → active learning, cost-reduction calculator),
+Reports and Settings. The optimiser is part of Synthea Materials (there is no separate "Optimize" module). The navigation
+(routes, model tree, dashboard, breadcrumb) is generated from `frontend/src/lib/modules.ts`.
+
+**Digital twin** — 2-D cross-section models (any shape, editable) solved with NumPy/SciPy: heat transfer
 with protein-denaturation kinetics, Herschel–Bulkley duct flow, solid mechanics and diffusion, with 3-D result views.
 Every material input comes from approved library records extracted from your papers.
-**Molecular structures (branch `ali`)** — any small molecule (SMILES/MOL/SDF), peptides and proteins (sequence, PDB,
+**Molecular structures** — any small molecule (SMILES/MOL/SDF), peptides and proteins (sequence, PDB,
 AlphaFold); computed properties (pI, charge, diffusion, amino-acid score, …) feed the libraries and twins; force-field
 interaction scenes. See [`docs/DESIGN_DECISIONS_ALI.md`](docs/DESIGN_DECISIONS_ALI.md).
 
@@ -79,10 +82,10 @@ the server. Without it, everything still works with the built-in explainer.
 | 1 | Open the preloaded project | Dashboard (walkthrough checklist) |
 | 2 | Inspect the seven ingredients (faba bean protein isolate FBPI and concentrate FBPC, water, potato starch, sunflower oil, xanthan gum, salt) and their provenance | Materials Library |
 | 3–4 | Edit the baseline formulation; nutrition and cost update immediately | Formulation Studio |
-| 5–8 | Protein ≥ 12 %, cost ≤ €1.60/kg → **Run optimiser** → compare *Lowest cost / Balanced (Pareto) / Highest protein*; try protein ≥ 60 % to see the infeasibility diagnosis | AI Optimizer |
+| 5–8 | Protein ≥ 12 %, cost ≤ €1.60/kg → **Run optimiser** → compare *Lowest cost / Balanced (Pareto) / Highest protein*; try protein ≥ 60 % to see the infeasibility diagnosis | Materials → Optimizer |
 | 9 | Edit the illustrative savings scenario (200 vs 60 experiments, €170, 2 kg, software cost) | Experiments → Cost-reduction calculator |
-| 10–11 | **To process** → **Run simulation** | AI Optimizer → Process Simulator |
-| 12–13 | **To 3D print** → toolpath animates automatically | AI Optimizer → 3D Printing Lab |
+| 10–11 | **To process** → **Run simulation** | Materials → Optimizer → Process → Process Simulator |
+| 12–13 | **To 3D print** → toolpath animates automatically | Materials → Optimizer → Print → 3D Printing Lab |
 | 14 | **Generate PDF report** (or JSON / CSV) | Reports |
 
 Expected optimiser results with the illustrative demo data (output of the engine, all prices illustrative): lowest cost

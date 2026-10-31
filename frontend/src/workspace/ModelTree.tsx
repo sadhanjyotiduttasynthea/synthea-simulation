@@ -1,16 +1,18 @@
 import {
-  Atom, Beaker, BookOpen, Boxes, ChevronDown, ChevronRight, Cuboid, FlaskConical, FolderTree, Globe2, Grid3x3, LibraryBig, LineChart, Network,
-  Play, Printer, Sigma, Sparkles, Thermometer, type LucideIcon,
+  Atom, Beaker, BookOpen, Boxes, ChevronDown, ChevronRight, Cuboid, Factory, FolderTree, Globe2, Layers, LibraryBig, Printer, Sigma, type LucideIcon,
 } from 'lucide-react'
 import { useCallback, useEffect, useState, type MouseEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { cx } from '../components/ui'
 import { api } from '../lib/api'
+import { MODULES, SHARED_PAGES, pageHref, type ModulePage } from '../lib/modules'
 import { useStore } from '../store'
 import { emitCommand } from './commands'
 import { useWs } from './wsStore'
 
 interface Action { label: string; to?: string; cmd?: string; payload?: unknown }
+const MODULE_ICON: Record<string, LucideIcon> = { materials: Layers, process: Factory, print: Printer }
+
 interface Node { id: string; label: string; icon?: LucideIcon; to?: string; children?: Node[]; actions?: Action[]; badge?: string }
 
 export interface TreeIndex {
@@ -29,7 +31,7 @@ export function ModelTree() {
   const nav = useNavigate()
   const loc = useLocation()
   const [idx, setIdx] = useState<TreeIndex | null>(null)
-  const [open, setOpen] = useState<Record<string, boolean>>(() => JSON.parse(localStorage.getItem('synthea-tree-open') ?? '{"project":true,"libs":true,"components":true,"geometry":true,"physics":true,"study":true,"results":true}'))
+  const [open, setOpen] = useState<Record<string, boolean>>(() => JSON.parse(localStorage.getItem('synthea-tree-open-v2') ?? '{"project":true,"module:materials":true,"module:process":true,"module:print":true}'))
   const [menu, setMenu] = useState<{ x: number; y: number; actions: Action[] } | null>(null)
   const select = useWs((s) => s.select)
 
@@ -43,7 +45,7 @@ export function ModelTree() {
     return () => window.removeEventListener('synthea:refresh-tree', load)
   }, [load])
   useEffect(() => {
-    localStorage.setItem('synthea-tree-open', JSON.stringify(open))
+    localStorage.setItem('synthea-tree-open-v2', JSON.stringify(open))
   }, [open])
   useEffect(() => {
     const close = () => setMenu(null)
@@ -51,53 +53,41 @@ export function ModelTree() {
     return () => window.removeEventListener('click', close)
   }, [])
 
+  // Three modules (lib/modules.ts) + shared pages. Dynamic children (libraries, papers, twins, …) hang off their pages.
+  const dynamic: Record<string, Partial<Node>> = {
+    '/libraries': {
+      actions: [{ label: 'New library', to: '/libraries', cmd: 'library.new' }, { label: 'Import library file', to: '/libraries', cmd: 'library.import' }],
+      children: (idx?.libraries ?? []).map((l) => ({ id: `lib:${l.id}`, label: l.name, icon: LibraryBig, to: `/libraries?lib=${l.id}`, badge: String(l.materials), actions: [{ label: 'Open', to: `/libraries?lib=${l.id}` }, { label: 'New material', to: `/libraries?lib=${l.id}`, cmd: 'material.new' }] })),
+    },
+    '/papers': {
+      badge: idx ? String(idx.papers.length) : undefined, actions: [{ label: 'Import PDFs…', to: '/papers', cmd: 'paper.import' }],
+      children: (idx?.papers ?? []).map((p) => ({ id: `paper:${p.id}`, label: p.title, icon: BookOpen, to: `/papers?paper=${p.id}`, badge: p.pending ? `${p.pending} to review` : undefined })),
+    },
+    '/papers?tab=review': { badge: idx ? String(idx.papers.reduce((s, p) => s + p.pending, 0) || '') || undefined : undefined },
+    '/models': { badge: idx ? `${idx.models.approved}/${idx.models.total}` : undefined, actions: [{ label: 'New model', to: '/models', cmd: 'model.new' }] },
+    '/formulation': { badge: String(formulations.length), children: formulations.map((f) => ({ id: `form:${f.id}`, label: f.name, icon: Beaker, to: '/formulation' })) },
+    '/molecules': {
+      badge: idx?.molecules ? String(idx.molecules.length) : undefined, actions: [{ label: 'Add molecule…', to: '/molecules', cmd: 'molecule.new' }],
+      children: (idx?.molecules ?? []).map((m) => ({ id: `mol:${m.id}`, label: m.name, icon: Atom, to: `/molecules?mol=${m.id}` })),
+    },
+    '/twin': {
+      actions: [{ label: 'New digital twin', to: '/twin', cmd: 'twin.new' }, ...[['heat', 'Heat transfer'], ['flow', 'Laminar flow'], ['diffusion', 'Diffusion'], ['kinetics', 'Reaction kinetics']].map(([k, l]) => ({ label: `Add ${l}`, to: '/twin?tab=physics', cmd: 'twin.addPhysics', payload: k })),
+        { label: 'Build mesh', to: '/twin?tab=mesh', cmd: 'mesh.build' }, { label: 'Compute (F5)', to: '/twin?tab=study', cmd: 'study.compute' }],
+      children: (idx?.twins ?? []).map((t) => ({ id: `twin:${t.id}`, label: t.name, icon: Boxes, to: `/twin?twin=${t.id}` })),
+    },
+    '/geometry': {
+      actions: ['cuboid', 'cylinder', 'sphere', 'rectangle', 'circle'].map((k) => ({ label: `Add ${k}`, to: '/geometry', cmd: 'geometry.add', payload: k })),
+      children: (idx?.geometry ?? []).map((g) => ({ id: `geo:${g.id}`, label: g.name, icon: Cuboid, to: `/geometry?sel=${g.id}`, badge: g.kind })),
+    },
+  }
+  const pageNode = (p: ModulePage): Node => ({ id: `page:${pageHref(p)}`, label: p.label, icon: p.icon, to: pageHref(p), ...dynamic[pageHref(p)] })
   const tree: Node = {
     id: 'project', label: project?.name ?? 'Project', icon: FolderTree, to: '/',
     actions: [{ label: 'Save project', cmd: 'file.save' }, { label: 'Save as…', cmd: 'file.saveAs' }, { label: 'Project settings', to: '/settings' }],
     children: [
       { id: 'defs', label: 'Global Definitions', icon: Sigma, to: '/definitions', actions: [{ label: 'Add parameter', to: '/definitions', cmd: 'definitions.add' }] },
-      {
-        id: 'libs', label: 'Scientific Libraries', icon: LibraryBig, to: '/libraries',
-        actions: [{ label: 'New library', to: '/libraries', cmd: 'library.new' }, { label: 'Import library file', to: '/libraries', cmd: 'library.import' }],
-        children: [
-          ...(idx?.libraries ?? []).map((l) => ({ id: `lib:${l.id}`, label: l.name, icon: LibraryBig, to: `/libraries?lib=${l.id}`, badge: String(l.materials), actions: [{ label: 'Open', to: `/libraries?lib=${l.id}` }, { label: 'New material', to: `/libraries?lib=${l.id}`, cmd: 'material.new' }] })),
-          { id: 'papers', label: 'Research Papers', icon: BookOpen, to: '/papers', badge: idx ? String(idx.papers.length) : undefined, actions: [{ label: 'Import PDF…', to: '/papers', cmd: 'paper.import' }],
-            children: (idx?.papers ?? []).map((p) => ({ id: `paper:${p.id}`, label: p.title, icon: BookOpen, to: `/papers?paper=${p.id}`, badge: p.pending ? `${p.pending} to review` : undefined })) },
-          { id: 'models', label: 'Model Registry', icon: Sigma, to: '/models', badge: idx ? `${idx.models.approved}/${idx.models.total}` : undefined, actions: [{ label: 'New model', to: '/models', cmd: 'model.new' }] },
-        ],
-      },
-      {
-        id: 'components', label: 'Components', icon: Boxes,
-        children: [
-          { id: 'forms', label: 'Formulations', icon: Beaker, to: '/formulation', badge: String(formulations.length), actions: [{ label: 'Open studio', to: '/formulation' }],
-            children: formulations.map((f) => ({ id: `form:${f.id}`, label: f.name, icon: Beaker, to: '/formulation' })) },
-          { id: 'twins', label: 'Digital Twins', icon: Boxes, to: '/twin', actions: [{ label: 'New digital twin', to: '/twin', cmd: 'twin.new' }],
-            children: (idx?.twins ?? []).map((t) => ({ id: `twin:${t.id}`, label: t.name, icon: Boxes, to: `/twin?twin=${t.id}` })) },
-        ],
-      },
-      { id: 'geometry', label: 'Geometry', icon: Cuboid, to: '/geometry',
-        actions: ['cuboid', 'cylinder', 'sphere', 'rectangle', 'circle'].map((k) => ({ label: `Add ${k}`, to: '/geometry', cmd: 'geometry.add', payload: k })),
-        children: (idx?.geometry ?? []).map((g) => ({ id: `geo:${g.id}`, label: g.name, icon: Cuboid, to: `/geometry?sel=${g.id}`, badge: g.kind })) },
-      { id: 'materials', label: 'Materials', icon: Globe2,
-        children: [
-          { id: 'ingredients', label: 'Ingredient table', icon: Beaker, to: '/materials' },
-          { id: 'molecules', label: 'Molecular structures', icon: Atom, to: '/molecules', badge: idx?.molecules ? String(idx.molecules.length) : undefined, actions: [{ label: 'Add molecule…', to: '/molecules', cmd: 'molecule.new' }],
-            children: (idx?.molecules ?? []).map((m) => ({ id: `mol:${m.id}`, label: m.name, icon: Atom, to: `/molecules?mol=${m.id}` })) },
-        ] },
-      { id: 'physics', label: 'Physics', icon: Thermometer, to: '/twin?tab=physics',
-        actions: [['heat', 'Heat transfer'], ['flow', 'Laminar flow'], ['diffusion', 'Diffusion'], ['kinetics', 'Reaction kinetics']].map(([k, l]) => ({ label: `Add ${l}`, to: '/twin?tab=physics', cmd: 'twin.addPhysics', payload: k })),
-        children: [
-          { id: 'process', label: 'Process line (flowsheet)', icon: Network, to: '/process' },
-          { id: 'printing', label: '3D food printing', icon: Printer, to: '/printing' },
-        ] },
-      { id: 'mesh', label: 'Mesh', icon: Grid3x3, to: '/twin?tab=mesh', actions: [{ label: 'Build mesh', to: '/twin?tab=mesh', cmd: 'mesh.build' }] },
-      { id: 'study', label: 'Study', icon: Play, to: '/twin?tab=study', actions: [{ label: 'Compute (F5)', to: '/twin?tab=study', cmd: 'study.compute' }],
-        children: [
-          { id: 'opt', label: 'Formulation optimisation', icon: Sparkles, to: '/optimizer' },
-          { id: 'exp', label: 'Experiments & DoE', icon: FlaskConical, to: '/experiments' },
-        ] },
-      { id: 'results', label: 'Results', icon: LineChart, to: '/twin?tab=results', actions: [{ label: 'Export results', to: '/twin?tab=results', cmd: 'results.export' }, { label: 'Generate report', to: '/reports' }],
-        children: [{ id: 'reports', label: 'Reports', icon: LineChart, to: '/reports' }] },
+      ...MODULES.map((m): Node => ({ id: `module:${m.id}`, label: m.label, icon: MODULE_ICON[m.id], children: m.pages.map(pageNode) })),
+      { id: 'shared', label: 'Shared', icon: Globe2, children: SHARED_PAGES.filter((p) => p.path !== '/' && p.path !== '/definitions').map(pageNode) },
     ],
   }
 

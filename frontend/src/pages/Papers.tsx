@@ -27,7 +27,6 @@ export default function Papers() {
   const [params, setParams] = useSearchParams()
   const [list, setList] = useState<Paper[]>([])
   const [paper, setPaper] = useState<Paper | null>(null)
-  const [tab, setTab] = useState<Tab>('review')
   const [page, setPage] = useState(1)
   const [highlight, setHighlight] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -35,8 +34,12 @@ export default function Papers() {
   const [libs, setLibs] = useState<Library[]>([])
   const [showList, setShowList] = useState(true)
   const pid = params.get('paper')
+  // the tab lives in the URL so the "Extraction Review" navigation entry can open it directly
+  const tab = (params.get('tab') as Tab | null) ?? 'summary'
+  const withParams = (patch: Record<string, string>) => { const p = new URLSearchParams(params); Object.entries(patch).forEach(([k, v]) => p.set(k, v)); return p }
+  const setTab = (t: Tab) => setParams(withParams({ tab: t }), { replace: true })
 
-  const load = useCallback(() => api.get<Paper[]>('/api/papers').then((l) => { setList(l); if (!pid && l[0]) setParams({ paper: l[0].id }, { replace: true }) }), [pid, setParams])
+  const load = useCallback(() => api.get<Paper[]>('/api/papers').then((l) => { setList(l); if (!pid && l[0]) setParams(withParams({ paper: l[0].id }), { replace: true }) }), [pid, setParams])  // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { load(); api.get<Library[]>('/api/libraries').then(setLibs) }, [load])
   useEffect(() => {
     if (!pid) return setPaper(null)
@@ -123,7 +126,7 @@ export default function Papers() {
           <Panel title={`Papers (${list.length})`} bodyClass="p-1" className="min-h-0 flex-1 overflow-y-auto">
             {list.length === 0 && <p className="p-2 text-xs text-neutral-500">No papers yet.</p>}
             {list.map((p) => (
-              <button key={p.id} onClick={() => setParams({ paper: p.id })} className={cx('mb-0.5 w-full rounded px-2 py-1.5 text-left text-xs', p.id === pid ? 'bg-neutral-900 text-white dark:bg-neutral-700' : 'hover:bg-neutral-100 dark:hover:bg-white/5')}>
+              <button key={p.id} onClick={() => setParams(withParams({ paper: p.id }))} className={cx('mb-0.5 w-full rounded px-2 py-1.5 text-left text-xs', p.id === pid ? 'bg-neutral-900 text-white dark:bg-neutral-700' : 'hover:bg-neutral-100 dark:hover:bg-white/5')}>
                 <div className="flex items-start gap-1.5"><BookOpen className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-500" /><span className="line-clamp-2 font-medium">{p.metadata.title}</span></div>
                 <div className="mt-0.5 flex flex-wrap gap-1 pl-5 text-[10px] opacity-80">
                   <span>{p.metadata.year ?? 'n.d.'} · {p.page_count} p.</span>

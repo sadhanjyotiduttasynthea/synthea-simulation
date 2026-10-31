@@ -9,7 +9,7 @@ Changelog (one commit per step; the app builds and runs after each):
 | Step | Status | Summary |
 |---|---|---|
 | 1 Faba bean protein replaces pea protein | done | Demo project "Faba Bean Plant-Based Sausage"; FBPI + FBPC ingredients (illustrative values, no citations); faba fields (legumin/vicilin, denaturation temperatures, vicine/convicine, off-flavour markers) default to missing; species/abbreviation aliases; synthetic test PDF, twin demo (sausage cooking), synthetic experiment generator switched; optimiser re-run (README). Pea protein removed everywhere. |
-| 2 Three modules (Materials / Process / Print) | planned | |
+| 2 Three modules (Materials / Process / Print) | done | Navigation generated from `frontend/src/lib/modules.ts` (routes, model tree, dashboard module cards, breadcrumb, Home ribbon). Synthea Optimize removed as a module; optimiser lives in Materials. Extraction Review is a deep link (`/papers?tab=review`). Restored a semantic `<main>` element and updated the assistant step, so `e2e/demo-walkthrough.mjs` passes again (16/16). |
 | 3 Synthea Materials | planned | |
 | 4 Synthea Process | planned | |
 | 5 Synthea Print | planned | |
@@ -189,8 +189,7 @@ without paid services.
   exclusion, GP processing mode, DoE/active learning, cost scenario, process mass/energy balance, toolpaths for all
   shapes, API CRUD/import/export/report).
 - Frontend: `tsc -b` clean, `vitest` 8 tests (rebalancing/locking), production build succeeds.
-- End-to-end: `node e2e/demo-walkthrough.mjs` — 16/16 checks at Milestone 9 (needs updating for the R1 layout: it waits
-  for a `<main>` element). Branch `ali`: `node e2e/twin-molecules-smoke.mjs` — 6/6 checks.
+- End-to-end: `node e2e/demo-walkthrough.mjs` — 16/16 checks (faba demo, three-module layout); `node e2e/twin-molecules-smoke.mjs` — 6/6 checks.
 - Branch `ali`: `pytest` — 59 tests (incl. twin solver verification, molecules, DB concurrency).
 - CI: `.github/workflows/ci.yml` runs backend and frontend jobs on push/PR to `main`/`development`.
   (CI run status could not be checked from the build session because the GitHub CLI token was invalid; verify in the

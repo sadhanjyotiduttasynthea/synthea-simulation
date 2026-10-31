@@ -1,7 +1,8 @@
 import { Box, PanelBottomClose, PanelLeftClose, PanelRightClose, X } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Group, Panel, Separator, useDefaultLayout } from 'react-resizable-panels'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
+import { locate } from '../lib/modules'
 import { cx } from '../components/ui'
 import { api } from '../lib/api'
 import { useStore } from '../store'
@@ -100,6 +101,7 @@ export function Workspace({ children }: { children: ReactNode }) {
         <Box className="h-4 w-4 text-rose-500" />
         <span className="text-[12.5px] font-semibold tracking-wide text-white">Synthea Simulation</span>
         <span className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">scientific food engineering workstation</span>
+        <Breadcrumb />
         <div className="flex-1" />
         <button onClick={() => toggle('left')} title="Model Builder (Ctrl+1)" className={cx('rounded p-1', showLeft ? 'text-cyan-300' : 'text-neutral-600')}><PanelLeftClose className="h-3.5 w-3.5" /></button>
         <button onClick={() => toggle('bottom')} title="Messages (Ctrl+3)" className={cx('rounded p-1', showBottom ? 'text-cyan-300' : 'text-neutral-600')}><PanelBottomClose className="h-3.5 w-3.5" /></button>
@@ -121,7 +123,7 @@ export function Workspace({ children }: { children: ReactNode }) {
           <Panel id="center" minSize="30" className="flex flex-col">
             <Group orientation="vertical" id={`synthea-v-${showBottom ? 1 : 0}`} defaultLayout={vLayout.defaultLayout} onLayoutChanged={vLayout.onLayoutChanged}>
               <Panel id="main" minSize="25" className="flex flex-col">
-                <div className="@container min-h-0 flex-1 overflow-auto bg-neutral-100 p-3 text-neutral-900 dark:bg-[#101215] dark:text-neutral-100">{children}</div>
+                <main className="@container min-h-0 flex-1 overflow-auto bg-neutral-100 p-3 text-neutral-900 dark:bg-[#101215] dark:text-neutral-100">{children}</main>
               </Panel>
               {showBottom && (
                 <>
@@ -164,6 +166,19 @@ export function Workspace({ children }: { children: ReactNode }) {
         ))}
       </div>
     </div>
+  )
+}
+
+function Breadcrumb() {
+  const loc = useLocation()
+  const { module, page } = locate(loc.pathname, loc.search)
+  if (!page) return null
+  return (
+    <nav aria-label="Module" className="ml-3 flex items-center gap-1.5 text-[11px]">
+      {module && <Link to={module.pages[0].path} className="rounded bg-rose-600/90 px-1.5 py-0.5 font-semibold text-white">{module.label}</Link>}
+      {module && <span className="text-neutral-500">›</span>}
+      <span className="text-neutral-200">{page.label}</span>
+    </nav>
   )
 }
 

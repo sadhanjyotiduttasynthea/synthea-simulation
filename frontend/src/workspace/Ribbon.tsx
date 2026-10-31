@@ -1,5 +1,5 @@
 import {
-  Atom, Beaker, BookOpen, Bot, Box, Boxes, Circle, Cylinder, FileDown, FileInput, FilePlus2, FileText, FlaskConical, FolderOpen, Gauge, Grid3x3,
+  Atom, Beaker, BookOpen, Bot, Box, Boxes, Circle, Cylinder, Factory, FileDown, FileInput, FilePlus2, FileText, FlaskConical, FolderOpen, Gauge, Grid3x3,
   Hexagon, Home, Layers, LayoutPanelLeft, LibraryBig, LineChart, Moon, Network, PanelBottom, PanelLeft, PanelRight, Play, Plus, Printer, Ruler,
   Save, SaveAll, Scissors, ScrollText, Sigma, Sparkles, Square, Thermometer, Upload, Waves, Wind, type LucideIcon,
 } from 'lucide-react'
@@ -35,7 +35,12 @@ const TABS: { id: string; label: string; groups: Group[] }[] = [
       { label: 'Overview', icon: Home, to: '/', big: true },
       { label: 'Global definitions', icon: Sigma, to: '/definitions' },
     ] },
-    { name: 'Formulation', tools: [
+    { name: 'Modules', tools: [
+      { label: 'Synthea Materials', icon: Layers, to: '/libraries', big: true },
+      { label: 'Synthea Process', icon: Factory, to: '/process', big: true },
+      { label: 'Synthea Print', icon: Printer, to: '/geometry', big: true },
+    ] },
+    { name: 'Formulation (Materials)', tools: [
       { label: 'Formulation studio', icon: Beaker, to: '/formulation', big: true },
       { label: 'Optimizer', icon: Sparkles, to: '/optimizer' },
       { label: 'Experiments', icon: FlaskConical, to: '/experiments' },

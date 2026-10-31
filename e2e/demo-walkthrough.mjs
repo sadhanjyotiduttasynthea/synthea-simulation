@@ -123,7 +123,8 @@ try {
   check('14. Export a report', head === '%PDF', pdfPath)
 
   // assistant
-  await page.getByRole('button', { name: 'Assistant' }).click()
+  // the assistant lives in the bottom panel's "AI Assistant" tab since the R1 workspace layout
+  await page.getByTestId('bottom').getByRole('button', { name: 'AI Assistant' }).click()
   await page.getByRole('button', { name: 'Explain these results' }).click()
   await page.waitForTimeout(1500)
   check('Assistant answers without external API', (await page.locator('aside').last().innerText()).includes('computation engine'))

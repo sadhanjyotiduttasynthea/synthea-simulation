@@ -1,5 +1,6 @@
 import { Component, lazy, Suspense, useEffect, type ErrorInfo, type ReactNode } from 'react'
 import { Route, Routes } from 'react-router-dom'
+import { MODULES, SHARED_PAGES } from './lib/modules'
 import { Alert, Button, Spinner } from './components/ui'
 import Dashboard from './pages/Dashboard'
 import { useStore } from './store'
@@ -21,6 +22,17 @@ const Papers = lazy(() => import('./pages/Papers'))
 const Models = lazy(() => import('./pages/Models'))
 const Molecules = lazy(() => import('./pages/Molecules'))
 const Twin = lazy(() => import('./pages/Twin'))
+
+const PAGES: Record<string, React.ComponentType> = {
+  // Synthea Materials
+  '/libraries': Libraries, '/papers': Papers, '/models': Models, '/materials': Materials, '/formulation': Formulation, '/optimizer': Optimizer, '/molecules': Molecules,
+  // Synthea Process
+  '/process': Process, '/twin': Twin,
+  // Synthea Print
+  '/geometry': Geometry, '/printing': Printing,
+  // shared
+  '/': Dashboard, '/definitions': Definitions, '/experiments': Experiments, '/reports': Reports, '/settings': Settings,
+}
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null }
@@ -49,22 +61,11 @@ export default function App() {
     <Suspense fallback={<Spinner label="Loading module…" />}>
       <ErrorBoundary>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/definitions" element={<Definitions />} />
-          <Route path="/libraries" element={<Libraries />} />
-          <Route path="/papers" element={<Papers />} />
-          <Route path="/models" element={<Models />} />
-          <Route path="/geometry" element={<Geometry />} />
-          <Route path="/molecules" element={<Molecules />} />
-          <Route path="/twin" element={<Twin />} />
-          <Route path="/materials" element={<Materials />} />
-          <Route path="/formulation" element={<Formulation />} />
-          <Route path="/optimizer" element={<Optimizer />} />
-          <Route path="/process" element={<Process />} />
-          <Route path="/printing" element={<Printing />} />
-          <Route path="/experiments" element={<Experiments />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/settings" element={<Settings />} />
+          {/* three modules (Synthea Materials / Process / Print) + shared pages, generated from lib/modules.ts */}
+          {[...MODULES.flatMap((m) => m.pages), ...SHARED_PAGES].filter((p, i, a) => a.findIndex((q) => q.path === p.path) === i).map((p) => {
+            const C = PAGES[p.path]
+            return <Route key={p.path} path={p.path} element={<C />} />
+          })}
           <Route path="*" element={<Dashboard />} />
         </Routes>
       </ErrorBoundary>

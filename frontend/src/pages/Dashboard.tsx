@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button, PageHeader, Panel, Prov, Stat, cx } from '../components/ui'
 import { api } from '../lib/api'
+import { MODULES, pageHref } from '../lib/modules'
 import { fmt } from '../lib/format'
 import { useEvaluation } from '../lib/hooks'
 import type { Project } from '../lib/types'
@@ -76,6 +77,21 @@ export default function Dashboard() {
           )}
         </>}
       />
+
+      <div className="grid gap-3 @4xl:grid-cols-3" aria-label="Synthea modules">
+        {MODULES.map((m) => (
+          <Panel key={m.id} title={m.label} subtitle={m.tagline}>
+            <div className="grid gap-1">
+              {m.pages.map((p) => (
+                <Link key={pageHref(p)} to={pageHref(p)} className="group flex items-start gap-2 rounded px-1.5 py-1 hover:bg-neutral-50 dark:hover:bg-white/5">
+                  <p.icon className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
+                  <span className="text-[13px]"><span className="font-medium">{p.label}</span><span className="block text-[11px] text-neutral-500">{p.description}</span></span>
+                </Link>
+              ))}
+            </div>
+          </Panel>
+        ))}
+      </div>
 
       <Panel title="Knowledge → simulation pipeline" subtitle="Every simulation input traces back to an approved library record or model, and from there to its source page.">
         <div className="flex flex-wrap items-stretch gap-1.5">
