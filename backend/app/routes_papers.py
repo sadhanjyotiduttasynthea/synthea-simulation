@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response
 
-from . import db, paper_summary, papers, sample_docs
+from . import db, extraction, paper_summary, papers, sample_docs
 
 router = APIRouter(prefix="/api")
 MAX_PDF_BYTES = 80 * 1024 * 1024
@@ -39,6 +39,33 @@ async def upload_paper(file: UploadFile = File(...), library_ids: str = Form("")
     libs = [x for x in library_ids.split(",") if x]
     p = papers.import_pdf(content, file.filename or "paper.pdf", libs)
     return papers.summary(p)
+
+
+@router.post("/papers/batch")
+async def upload_many(files: list[UploadFile] = File(...), library_ids: str = Form(""), extract: str = Form("rule")):
+    """Import many PDFs at once. New papers are run through the extractor so their candidates enter the review queue."""
+    libs = [x for x in library_ids.split(",") if x]
+    out = []
+    for f in files:
+        name = f.filename or "paper.pdf"
+        content = await f.read()
+        if len(content) > MAX_PDF_BYTES:
+            out.append({"file": name, "ok": False, "error": "PDF larger than 80 MB"})
+            continue
+        try:
+            p = papers.import_pdf(content, name, libs)
+        except ValueError as e:
+            out.append({"file": name, "ok": False, "error": str(e)})
+            continue
+        row = {"file": name, "ok": True, "paper": papers.summary(p), "duplicate": bool(p.get("duplicate")), "extracted": None}
+        if extract in ("rule", "ai") and not p.get("duplicate"):
+            try:
+                r = extraction.run(p["id"], extract)
+                row["extracted"] = r.get("created", 0)
+            except ValueError as e:  # e.g. external AI not enabled -> paper stays imported
+                row["extract_error"] = str(e)
+        out.append(row)
+    return {"results": out, "imported": sum(1 for r in out if r["ok"] and not r["duplicate"]), "failed": sum(1 for r in out if not r["ok"])}
 
 
 @router.post("/papers/sample")

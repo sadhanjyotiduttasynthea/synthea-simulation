@@ -72,6 +72,19 @@ export const api = {
     if (!res.ok) throw new ApiError(res.status, await res.text())
     return res.blob()
   },
+  async uploadMany<T>(path: string, files: File[], fields: Record<string, string> = {}): Promise<T> {
+    const fd = new FormData()
+    files.forEach((f) => fd.append('files', f, f.name))
+    Object.entries(fields).forEach(([k, v]) => fd.append(k, v))
+    const res = await fetch(cfg.base + path, { method: 'POST', headers: cfg.token ? { 'X-Synthea-Token': cfg.token } : undefined, body: fd })
+    if (!res.ok) {
+      let msg = `${res.status}`
+      try { msg = (await res.json()).detail ?? msg } catch { /* ignore */ }
+      log('warn', 'api', `upload ${path}: ${msg}`)
+      throw new ApiError(res.status, msg)
+    }
+    return res.json()
+  },
   async upload<T>(path: string, file: Blob, filename: string, fields: Record<string, string> = {}): Promise<T> {
     const fd = new FormData()
     fd.append('file', file, filename)
@@ -112,6 +125,23 @@ export async function readFile(accept: string): Promise<string> {
 }
 
 /** Let the user pick a file; returns a File (desktop: read through the fs plugin). */
+/** Pick several files (native multi-select dialog on desktop). */
+export function pickFiles(accept: string): Promise<File[]> {
+  if (isDesktop()) return import('./desktop').then((d) => d.openFiles(accept))
+  return new Promise((resolve, reject) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = accept
+    input.multiple = true
+    input.onchange = () => {
+      const fs = Array.from(input.files ?? [])
+      if (!fs.length) return reject(new Error('No file selected'))
+      resolve(fs)
+    }
+    input.click()
+  })
+}
+
 export function pickFile(accept: string): Promise<File> {
   if (isDesktop()) return import('./desktop').then((d) => d.openFile(accept))
   return new Promise((resolve, reject) => {

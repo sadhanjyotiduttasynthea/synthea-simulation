@@ -134,3 +134,50 @@ def delete_property(pid: str):
 @router.get("/properties/compare")
 def compare(material_id: str, property: str, include_unreviewed: bool = True):
     return knowledge.compare(material_id, property, include_unreviewed)
+
+
+# ------------------------------------------------------------------ "Summarize all PDFs" (library report)
+@router.post("/libraries/{lid}/report")
+def library_report(lid: str, body: dict = Body(default={})):
+    from . import library_report as lr
+    try:
+        return lr.build(lid, body.get("method", "local"))
+    except KeyError as e:
+        _404(e)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post("/libraries/{lid}/report.pdf")
+def library_report_pdf(lid: str, body: dict = Body(default={})):
+    from fastapi.responses import Response
+
+    from . import library_report as lr
+    from . import reports
+    try:
+        r = body.get("report") or lr.build(lid, body.get("method", "local"))
+    except KeyError as e:
+        _404(e)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    pdf = reports.build_pdf(lr.pdf_payload(r, body.get("project", "")))
+    return Response(pdf, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="library_report_{lid}.pdf"'})
+
+
+@router.get("/equations")
+def all_equations():
+    """All extracted equations (awaiting review or unrecognised) and registry models, with sources."""
+    from . import library_report as lr
+    papers = db.list_docs("papers")
+    rows = lr.equation_rows(papers)
+    seen = {r.get("model_id") for r in rows}
+    names = {m["id"]: m["name"] for m in db.list_docs("materials")}
+    for m in db.list_docs("sci_models"):  # models without a paper source (manual entry)
+        if m["id"] in seen or m.get("status") in ("rejected", "deprecated"):
+            continue
+        rows.append({"origin": "registry model", "model_id": m["id"], "name": m.get("name"), "template": m.get("template"), "latex": m.get("latex"), "expression": m.get("expression"),
+                     "dependent": m.get("dependent"), "variables": m.get("variables") or [],
+                     "parameters": [{"symbol": q["symbol"], "name": q.get("name"), "value": q.get("value"), "unit": q.get("unit")} for q in m.get("parameters") or []],
+                     "validity": m.get("validity") or {}, "conditions": m.get("conditions") or {}, "material": names.get(m.get("material_id")), "status": m.get("status"),
+                     "paper_id": None, "paper": (m.get("source") or {}).get("citation") or "manual entry", "page": None, "synthetic": False})
+    return rows

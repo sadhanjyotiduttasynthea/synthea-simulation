@@ -132,3 +132,58 @@ above an approved fracture stress.
 - ε280 = 5500·W + 1490·Y + 125·cystine (Pace et al. 1995); GRAVY (Kyte & Doolittle 1982); amino-acid score vs FAO 2013
   (digestibility not included).
 - Conformers: RDKit ETKDG v3 + MMFF94. Interaction energy E_int = E_AB − E_A − E_B (MMFF94, vacuum, local minimum).
+
+## Synthea Materials — equation templates, library report and formulation insights
+
+### Recognised equation templates (`backend/app/extraction.py`, `sci_registry.TEMPLATES`)
+| Template | Form | Parameters | Typical use in faba bean literature |
+|---|---|---|---|
+| Power law | τ = K·γ̇ⁿ | K [Pa·sⁿ], n [–] | dispersion / batter flow curves |
+| Herschel–Bulkley | τ = τ₀ + K·γ̇ⁿ | τ₀ [Pa], K, n | pastes with a yield stress |
+| Arrhenius viscosity | η = A·exp(Eₐ/RT) | A [Pa·s], Eₐ [J/mol] | temperature dependence of viscosity |
+| First-order / Arrhenius kinetics | dX/dt = −k(T)X, k = k_ref·exp[−Eₐ/R(1/T − 1/T_ref)] | k_ref [1/s], Eₐ, T_ref [K] | protein denaturation |
+| GAB sorption | X = X_m·C·K·a_w / [(1 − K·a_w)(1 − K·a_w + C·K·a_w)] | X_m, C, K [–] | moisture sorption isotherms |
+| Fourier conduction | q = −k·dT/dx | k [W/(m·K)] | heat transfer |
+
+Equations are recognised from displayed lines and from sentences naming the model. Parameters are only filled from
+the same text (GAB: X_m, C, K stated next to the model name); validity ranges only when stated. Unrecognised
+equations keep the low-confidence manual-entry path. Nothing is used in calculations before approval.
+
+### "Summarize all PDFs" (library report, `backend/app/library_report.py`)
+* Papers filed in the library, each with up to five verbatim key statements and page numbers.
+* Consolidated property table: library records (reviewed/approved) whose source is one of these papers plus extraction
+  candidates still awaiting review (labelled), with value, uncertainty, conditions, paper and page.
+* Equations and models: registry models citing the papers and pending equation candidates.
+* Key numbers: min–max range per (material, property) in canonical units with the number of values and papers — never
+  a mean.
+* Disagreements: pairs of values for the same material and property whose conditions are comparable (temperature
+  ± 5 °C, concentration ± 2 %, pH ± 0.5, shear rate within a factor 2, …) and that differ by more than 25 %; both are
+  listed side by side.
+* Optional Claude narrative: only from the verbatim statements and table rows; numbers in the narrative that do not
+  occur in the records are masked. Exports: JSON and PDF (ReportLab).
+
+### Sensory & technical profile (`backend/app/formulation_insights.py`)
+Only APPROVED library records enter the profile. Per attribute (aroma, flavour incl. beany notes, colour, mouthfeel,
+expected texture, technical):
+* *literature*: an ingredient-level record quoted directly (paper + page), with its share in the formulation;
+* *measured*: formulation-level data (e.g. the formulation's Herschel–Bulkley flow curve);
+* *calculated*: exact mass balances (composition);
+* *predicted*: the concentration of a compound (hexanal) as Σ wᵢcᵢ with propagated SD, assuming no formation or loss;
+  a lower bound when some ingredients have no data; heat-set gelation from the denaturation record and the process
+  temperature (rule R2);
+* *not predicted — needs …* otherwise. Sensory scores, colour (L*a*b*) and texture are not additive and are never
+  averaged over ingredients.
+
+### Ingredient interaction rules (documented, qualitative)
+Ratings: compatible / caution / incompatible only with a basis; otherwise unknown with the data that is missing.
+A reviewed and approved "ingredient interaction" record from a paper (partner material + rating) takes precedence.
+Computed Molecules scenes for the two materials are linked as context (vacuum force-field energies are not a
+compatibility measure).
+
+| Rule | Mechanism | Data needed | Rating |
+|---|---|---|---|
+| R1 | protein–polysaccharide electrostatic complexation | formulation pH, protein pI (approved record), polysaccharide charge type (anionic: xanthan, alginate, pectin, carrageenan, CMC, gum arabic; neutral: starch, methylcellulose, guar, locust bean gum; cationic: chitosan) | anionic & pH < pI → caution (complexation/coacervation); anionic & pH > pI → compatible; neutral → compatible (competes for water) |
+| R2 | heat-induced unfolding, disulfide cross-linking | approved denaturation temperature, process temperature | T_process ≥ T_d → compatible (gel network); below → caution |
+| R3 | Maillard reaction | approved reducing-sugar record, heating | caution (browning, flavour) |
+| R4 | protein–lipid emulsification | approved emulsifying activity / emulsion stability | compatible; otherwise unknown |
+| R5 | salt effect on protein solubility / gelation | approved solubility at a stated salt concentration | caution (check against the formulation salt level) |

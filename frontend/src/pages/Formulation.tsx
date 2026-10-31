@@ -1,4 +1,6 @@
-import { Copy, GitCompare, Lock, Plus, Save, Scale, Search, Star, Trash2, Unlock, X } from 'lucide-react'
+import { Copy, Factory, GitCompare, Lock, Plus, Save, Scale, Search, Star, Trash2, Unlock, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { FormulationInsights } from '../components/FormulationInsights'
 import { useEffect, useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Alert, Button, Field, Input, KV, Modal, NumInput, PageHeader, Panel, Prov, Spinner, Stat, cx, inputCls } from '../components/ui'
@@ -13,6 +15,7 @@ const emptyRheo: Rheology = { yield_stress_pa: null, consistency_index_pa_sn: nu
 
 export default function Formulation() {
   const { project, formulations, ingredients, saveFormulation, setActiveFormulation, refreshFormulations, toast, setAssistant } = useStore()
+  const nav = useNavigate()
   const ingMap = useIngredientMap()
   const active = useActiveFormulation()
   const [selId, setSelId] = useState<string | undefined>(active?.id)
@@ -93,6 +96,7 @@ export default function Formulation() {
             <Button size="sm" disabled={!draft} onClick={() => persist(true)}><Copy className="h-3.5 w-3.5" />Duplicate</Button>
             <Button size="sm" onClick={() => setCompareOpen(true)} disabled={formulations.length < 1}><GitCompare className="h-3.5 w-3.5" />Compare</Button>
             <Button size="sm" disabled={!draft || draft.id === project?.active_formulation_id} onClick={() => draft && setActiveFormulation(draft.id).then(() => toast('Active formulation set — used by optimiser baseline, process and printing', 'success'))}><Star className="h-3.5 w-3.5" />Set active</Button>
+            <Button size="sm" disabled={!draft?.id || !!dirty} title={dirty ? 'Save the formulation first' : 'Make this the active formulation and open Synthea Process'} onClick={() => draft && setActiveFormulation(draft.id).then(() => nav('/process'))}><Factory className="h-3.5 w-3.5" />To process</Button>
             <Button size="sm" variant="primary" disabled={!dirty} loading={saving} onClick={() => persist(false)}><Save className="h-3.5 w-3.5" />Save</Button>
           </>
         }
@@ -249,6 +253,7 @@ export default function Formulation() {
           {draft && <RheologyPanel f={draft} onChange={(rh) => setDraft({ ...draft, rheology: rh })} />}
         </div>
       </div>
+      {draft && <div className="mt-3"><FormulationInsights lines={draft.lines} formulationId={draft.id || undefined} projectId={project?.id} /></div>}
       <CompareModal open={compareOpen} onClose={() => setCompareOpen(false)} serving={serving} />
     </div>
   )

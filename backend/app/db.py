@@ -19,13 +19,13 @@ COLLECTIONS = (
     "libraries", "materials", "properties", "papers", "extractions", "sci_models",
     # model building (project scoped)
     "geometries", "twins", "studies",
-    # molecular structures (added by schema migration 3)
-    "molecules",
+    # molecular structures (added by schema migration 3); computed interaction scenes (migration 4)
+    "molecules", "scenes",
 )
 
 # Ordered schema migrations. Existing user data is never dropped; new tables and
 # columns are added, and data migrations only insert.
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 _lock = threading.RLock()  # one shared connection: every statement + fetch runs under the lock
 _conn: sqlite3.Connection | None = None
@@ -72,8 +72,8 @@ def _migrate(conn: sqlite3.Connection):
                 conn.execute(f"ALTER TABLE {c} ADD COLUMN parent_id TEXT")
             conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{c}_parent ON {c}(parent_id)")
             conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{c}_project ON {c}(project_id)")
-    if current < 3:
-        # v3: molecules collection; make sure every (possibly newly created) table has parent_id
+    if current < 4:
+        # v3/v4: molecules and scenes collections; make sure every (possibly newly created) table has parent_id
         for c in COLLECTIONS:
             cols = {r[1] for r in conn.execute(f"PRAGMA table_info({c})")}
             if "parent_id" not in cols:

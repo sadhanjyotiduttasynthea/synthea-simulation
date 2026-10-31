@@ -33,7 +33,7 @@ def test_rule_extraction_values_conditions_and_provenance(paper):
     # no false positives from the concentration range '10-20 % (w/w)'
     assert not any(c["kind"] == "property" and c["property"] == "protein" and c["value"] == 20.0 for c in cands)
     templates = {c["equation"]["template"] for c in cands if c["kind"] == "equation"}
-    assert templates == {"herschel_bulkley", "arrhenius_viscosity", "first_order_arrhenius"}
+    assert templates == {"herschel_bulkley", "arrhenius_viscosity", "first_order_arrhenius", "gab_sorption", "fourier_conduction"}
 
 
 def test_review_approval_creates_traceable_records_and_models(client, paper):
@@ -101,3 +101,19 @@ def test_faba_bean_material_detection(client):
     assert sp["Vicia faba"] >= 1 and any(k.startswith("FBPI") for k in sp)
     d = client.post(f"/api/papers/{p['id']}/summary", json={}).json()
     assert "Vicia faba" in d["species"]
+
+
+def test_gab_and_fourier_templates_and_approval(paper, client):
+    p, cands = paper
+    gab = next(c for c in cands if c["kind"] == "equation" and c["equation"].get("template") == "gab_sorption")
+    vals = {q["symbol"]: q["value"] for q in gab["equation"]["parameters"]}
+    assert vals == {"Xm": 0.071, "C": 9.4, "K": 0.86} and gab["equation"]["validity"] == {"aw": [0.11, 0.85]}
+    out = client.post(f"/api/extractions/{gab['id']}/approve", json={"material_id": "mat-faba-protein-isolate", "review_status": "approved"}).json()
+    m = client.get(f"/api/sci-models/{out['created'][0]['id']}").json()
+    assert m["template"] == "gab_sorption" and m["source"]["paper_id"] == p["id"]
+    r = client.post(f"/api/sci-models/{m['id']}/evaluate", json={"inputs": {"aw": 0.5}}).json()
+    Xm, C, K, aw = 0.071, 9.4, 0.86, 0.5
+    assert abs(r["value"] - Xm * C * K * aw / ((1 - K * aw) * (1 - K * aw + C * K * aw))) < 1e-9
+    assert client.post(f"/api/sci-models/{m['id']}/evaluate", json={"inputs": {"aw": 0.95}}).status_code == 400  # outside validity
+    fo = next(c for c in cands if c["kind"] == "equation" and c["equation"].get("template") == "fourier_conduction")
+    assert fo["confidence"] == "low"  # conductivity not stated in the same sentence -> user must fill

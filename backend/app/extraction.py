@@ -364,7 +364,29 @@ EQUATION_TEMPLATES = [
                        {"symbol": "T_ref", "latex": "T_{ref}", "name": "reference temperature", "unit": "K"}],
         "constants": {"R": 8.314462618}, "category": "kinetics",
     },
+    {
+        "id": "gab_sorption", "name": "GAB sorption isotherm (Guggenheim–Anderson–de Boer)",
+        "detect": lambda ctx: bool(re.search(r"\bGAB\b|guggenheim", ctx, re.I)),
+        "latex": r"X = \frac{X_m\,C\,K\,a_w}{(1-K a_w)(1-K a_w+C K a_w)}", "expression": "Xm * C * K * aw / ((1 - K * aw) * (1 - K * aw + C * K * aw))",
+        "dependent": {"symbol": "X", "name": "equilibrium moisture content (dry basis)", "unit": ""},
+        "variables": [{"symbol": "aw", "latex": "a_w", "name": "water activity", "unit": ""}],
+        "parameters": [{"symbol": "Xm", "latex": "X_m", "name": "monolayer moisture content (dry basis)", "unit": ""},
+                       {"symbol": "C", "latex": "C", "name": "Guggenheim constant", "unit": ""},
+                       {"symbol": "K", "latex": "K", "name": "multilayer correction factor", "unit": ""}],
+        "category": "sorption",
+    },
+    {
+        "id": "fourier_conduction", "name": "Fourier's law of heat conduction",
+        "detect": lambda ctx: "fourier" in ctx.lower() and ("conduction" in ctx.lower() or "heat flux" in ctx.lower()),
+        "latex": r"q = -k\\,\\frac{dT}{dx}", "expression": "-k * dTdx", "dependent": {"symbol": "q", "name": "heat flux", "unit": "W/m**2"},
+        "variables": [{"symbol": "dTdx", "latex": r"\\frac{dT}{dx}", "name": "temperature gradient", "unit": "K/m"}],
+        "parameters": [{"symbol": "k", "latex": "k", "name": "thermal conductivity", "unit": "W/(m*K)", "property": "thermal_conductivity"}],
+        "category": "thermal",
+    },
 ]
+
+# Templates that are recognised from a sentence even when no displayed equation is present.
+SENTENCE_TEMPLATES = {"gab_sorption": r"\bGAB\b|guggenheim", "fourier_conduction": r"fourier'?s? law"}
 
 
 def _tpl(tid):
@@ -374,6 +396,10 @@ def _tpl(tid):
 def _detect_template(line: str, ctx: str):
     """Classify an equation line by its own form first, then by nearby wording."""
     l, c = line, ctx.lower()
+    if re.search(r"a\s*_?\s*w", l) and re.search(r"\bGAB\b|guggenheim", ctx, re.I):
+        return _tpl("gab_sorption")
+    if re.search(r"d\s*T\s*/\s*d\s*x", l) and "fourier" in c:
+        return _tpl("fourier_conduction")
     if "exp" in l:
         if "η" in l or "eta" in l.lower() or ("viscosity" in c and "rate constant" not in c[:400]):
             return _tpl("arrhenius_viscosity")
@@ -392,6 +418,10 @@ def _param_from_text(ctx: str, sym: str, unit_key: str | None) -> tuple[float | 
         "Ea": r"(?:E\s*a|activation energy)\s*(?:=|of)?\s*" + NUM + r"\s*(kJ\s*/\s*mol|J\s*/\s*mol)",
         "A": r"\bA\s*=\s*" + NUM + r"\s*(Pa\s*[·.⋅]?\s*s|mPa\s*[·.⋅]?\s*s)",
         "k_ref": r"rate constant\s*k?\s*=?\s*" + NUM + r"\s*(s\s*[-−–]\s*1|min\s*[-−]\s*1)",
+        # GAB parameters: only searched in a GAB context (see SENTENCE_TEMPLATES / _detect_template)
+        "Xm": r"X\s*_?\s*m\s*=\s*" + NUM + r"\s*(g\s*/\s*g|kg\s*/\s*kg)?",
+        "C": r"(?<![A-Za-z])C\s*=\s*" + NUM + r"()",
+        "K": r"(?<![A-Za-z])K\s*=\s*" + NUM + r"()",
     }
     p = pats.get(sym)
     if not p:
@@ -449,8 +479,29 @@ def extract_equations(pages: list[dict], param_sets: list[dict], primary_materia
             eq["validity"] = rng
             cands.append({**base, "equation": eq, "confidence": "medium" if (sets or any(p["value"] is not None for p in params)) else "low",
                           "notes": "Equation form recognised from template; verify symbols, parameters and units against the source."})
+    displayed = {(c["page"], c["equation"].get("template")) for c in cands}
     for pg in pages:
         for sent in sentences(pg["text"]):
+            for tid, pat in SENTENCE_TEMPLATES.items():
+                if not re.search(pat, sent, re.I) or (pg["n"], tid) in displayed:
+                    continue
+                tpl = _tpl(tid)
+                eq = {k: v for k, v in tpl.items() if k != "detect"}
+                eq["template"], eq["raw"] = tid, sent
+                params = []
+                for prm in tpl["parameters"]:
+                    v, u, src = _param_from_text(sent, prm["symbol"], prm.get("unit")) if tid == "gab_sorption" else (None, None, None)
+                    params.append({**prm, "value": v, "value_unit": u, "source_text": src})
+                rng = {}
+                m = re.search(r"a\s*_?\s*w\s*(?:range|between|from)?\s*(?:of)?\s*(0?\.\d+)\s*(?:-|–|to|and)\s*(0?\.\d+)", sent)
+                if m and tid == "gab_sorption":
+                    rng["aw"] = [float(m.group(1)), float(m.group(2))]
+                eq.update({"parameters": params, "parameter_sets": [], "validity": rng})
+                displayed.add((pg["n"], tid))
+                cands.append({"kind": "equation", "page": pg["n"], "snippet": sent, "context": sent, "evidence_type": "fitted_parameter" if any(p["value"] is not None for p in params) else "directly_reported",
+                              "material_name": (primary_material or {}).get("name"), "material_id": (primary_material or {}).get("material_id"),
+                              "equation": eq, "confidence": "medium" if params and all(p["value"] is not None for p in params) else "low",
+                              "notes": "Model named in the text; the mathematical form is the standard template form — verify symbols, parameters and units."})
             if re.search(r"first[- ]order", sent, re.I) and re.search(r"rate constant", sent, re.I):
                 tpl = _tpl("first_order_arrhenius")
                 eq = {k: v for k, v in tpl.items() if k != "detect"}

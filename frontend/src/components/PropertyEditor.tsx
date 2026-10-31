@@ -1,5 +1,6 @@
 import { Check, Plus, Save, Trash2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { api } from '../lib/api'
 import { type Catalog, type PropertyRecord, STATUS_STYLE, unitLabel } from '../lib/sci'
 import { Button, Field, Input, NumInput, Select, cx, inputCls } from './ui'
 
@@ -14,6 +15,8 @@ export function PropertyEditor({ record, catalog, papers, onSave, onDelete, onCa
   const set = <K extends keyof PropertyRecord>(k: K, v: PropertyRecord[K]) => setR({ ...r, [k]: v })
   const condLabels = Object.fromEntries(catalog.conditions.map((c) => [c.key, c]))
   const unusedConds = catalog.conditions.filter((c) => !(c.key in (r.conditions ?? {})))
+  const [mats, setMats] = useState<{ id: string; name: string }[]>([])
+  useEffect(() => { if (r.property === 'ingredient_interaction' && !mats.length) api.get<{ id: string; name: string }[]>('/api/materials').then(setMats) }, [r.property, mats.length])
   const grouped = Object.entries(catalog.categories).map(([cat, label]) => ({ cat, label, items: catalog.properties.filter((p) => p.category === cat) }))
 
   return (
@@ -57,6 +60,13 @@ export function PropertyEditor({ record, catalog, papers, onSave, onDelete, onCa
           </div>
         ))}
       </div>
+      {r.property === 'ingredient_interaction' && (
+        <div className="grid grid-cols-2 gap-2 rounded border border-cyan-300 p-2 dark:border-cyan-800">
+          <Field label="Partner material (interacts with)"><Select value={r.partner_material_id ?? ''} onChange={(e) => set('partner_material_id', e.target.value || null)}><option value="">— choose —</option>{mats.filter((m) => m.id !== r.material_id).map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</Select></Field>
+          <Field label="Rating reported by the source"><Select value={r.rating ?? ''} onChange={(e) => set('rating', (e.target.value || null) as PropertyRecord['rating'])}><option value="">— choose —</option><option value="compatible">compatible</option><option value="caution">caution</option><option value="incompatible">incompatible</option></Select></Field>
+          <Field label="Observation (quote or paraphrase of the paper)" className="col-span-2"><Input className="w-full" value={r.value_text ?? ''} onChange={(e) => set('value_text', e.target.value)} placeholder="e.g. complex coacervation observed at pH 4" /></Field>
+        </div>
+      )}
       {!compact && <Field label="Formulation / sample composition"><Input className="w-full" value={r.composition ?? ''} onChange={(e) => set('composition', e.target.value)} placeholder="e.g. 15 % w/w FBPI in water" /></Field>}
       <Field label="Measurement method"><Input className="w-full" value={r.method ?? ''} onChange={(e) => set('method', e.target.value)} placeholder="e.g. rotational rheometer, cone-plate" /></Field>
       <div className="rounded border border-neutral-200 p-1.5 dark:border-neutral-700">

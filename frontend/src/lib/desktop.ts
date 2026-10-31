@@ -31,6 +31,17 @@ export async function openFile(accept: string): Promise<File> {
   return f
 }
 
+export async function openFiles(accept: string): Promise<File[]> {
+  const paths = await open({ multiple: true, directory: false, filters: filtersFor(accept) })
+  const list = !paths ? [] : Array.isArray(paths) ? paths : [paths]
+  if (!list.length) throw new Error('No file selected')
+  return Promise.all(list.map(async (path) => {
+    const f = new File([await fsRead(path)], path.split(/[\\/]/).pop() ?? 'file')
+    Object.defineProperty(f, 'path', { value: path })
+    return f
+  }))
+}
+
 export async function savePath(defaultName: string): Promise<string | null> {
   const ext = '.' + (defaultName.split('.').pop() ?? '')
   return save({ defaultPath: defaultName, filters: filtersFor(ext) })

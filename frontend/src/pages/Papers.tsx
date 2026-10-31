@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState, type DragEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PageViewer } from '../components/PageViewer'
 import { PaperSummary } from '../components/PaperSummary'
-import { Alert, Badge, Button, Field, Input, PageHeader, Panel, Spinner, Tabs, cx } from '../components/ui'
-import { api, pickFile } from '../lib/api'
+import { Alert, Badge, Button, Field, Input, PageHeader, Panel, Select, Spinner, Tabs, cx } from '../components/ui'
+import { api, pickFiles } from '../lib/api'
 import type { Library } from '../lib/sci'
 import { useStore } from '../store'
 import { useCommand } from '../workspace/commands'
@@ -46,26 +46,33 @@ export default function Papers() {
     api.get<Paper>(`/api/papers/${pid}`).then((p) => { setPaper(p); setPage(1); setHighlight(null); select({ kind: 'paper', id: p.id, label: p.metadata.title }) }).catch(() => setPaper(null))
   }, [pid, select])
 
+  const [autoExtract, setAutoExtract] = useState(true)
+  const [libTarget, setLibTarget] = useState('')
   const upload = async (files: File[]) => {
     const pdfs = files.filter((f) => f.name.toLowerCase().endsWith('.pdf') || f.type === 'application/pdf')
     if (!pdfs.length) return toast('Only PDF files can be imported', 'error')
-    for (const f of pdfs) {
-      setBusy(`Importing ${f.name}…`)
-      try {
-        const p = await api.upload<Paper & { duplicate?: boolean }>('/api/papers', f, f.name)
-        log(p.duplicate ? 'warn' : 'success', 'papers', p.duplicate ? `${f.name} is already in the library (same file hash)` : `Imported ${f.name}: ${p.page_count} pages${p.warnings.length ? `, ${p.warnings.length} warning(s)` : ''}`)
-        p.warnings.forEach((w) => log('warn', 'papers', `${f.name}: ${w}`))
-        setParams({ paper: p.id })
-      } catch (e) {
-        toast(`${f.name}: ${(e as Error).message}`, 'error')
+    setBusy(`Importing ${pdfs.length} PDF(s)${autoExtract ? ' and extracting candidates' : ''}…`)
+    try {
+      type Row = { file: string; ok: boolean; error?: string; duplicate?: boolean; extracted?: number | null; extract_error?: string; paper?: Paper }
+      const r = await api.uploadMany<{ results: Row[]; imported: number; failed: number }>('/api/papers/batch', pdfs, { library_ids: libTarget, extract: autoExtract ? 'rule' : 'none' })
+      for (const x of r.results) {
+        if (!x.ok) { log('error', 'papers', `${x.file}: ${x.error}`); continue }
+        log(x.duplicate ? 'warn' : 'success', 'papers', x.duplicate ? `${x.file} is already in the library (same file hash)` : `Imported ${x.file}: ${x.paper?.page_count} pages${x.extracted != null ? `, ${x.extracted} candidate(s) sent to review` : ''}`)
+        x.paper?.warnings.forEach((w) => log('warn', 'papers', `${x.file}: ${w}`))
+        if (x.extract_error) log('warn', 'papers', `${x.file}: ${x.extract_error}`)
       }
+      toast(`${r.imported} PDF(s) imported${r.failed ? `, ${r.failed} failed` : ''}`, r.failed ? 'error' : 'success')
+      const last = r.results.filter((x) => x.ok).pop()
+      if (last?.paper) setParams({ paper: last.paper.id, tab: autoExtract ? 'review' : 'summary' })
+    } catch (e) {
+      toast((e as Error).message, 'error')
     }
     setBusy(null)
     await load()
     refreshTree()
   }
   const importDialog = async () => {
-    try { await upload([await pickFile('.pdf')]) } catch { /* cancelled */ }
+    try { await upload(await pickFiles('.pdf')) } catch { /* cancelled */ }
   }
   useCommand('paper.import', importDialog)
   const sample = async () => {
@@ -112,7 +119,12 @@ export default function Papers() {
     <div className="flex h-full flex-col">
       <PageHeader title="Research Papers" subtitle="PDFs are stored locally. Text, tables and metadata are extracted on this machine; extracted values require human review before entering a library."
         actions={<>
-          <Button size="sm" onClick={importDialog}><FileUp className="h-3.5 w-3.5" />Import PDF</Button>
+          <Select value={libTarget} onChange={(e) => setLibTarget(e.target.value)} className="w-48" title="Library the imported papers are filed in">
+            <option value="">No library (file later)</option>
+            {libs.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </Select>
+          <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={autoExtract} onChange={(e) => setAutoExtract(e.target.checked)} />Extract on import</label>
+          <Button size="sm" onClick={importDialog}><FileUp className="h-3.5 w-3.5" />Import PDFs</Button>
           <Button size="sm" onClick={sample}><FlaskConical className="h-3.5 w-3.5" />Synthetic test document</Button>
         </>} />
       <div className={cx('grid min-h-0 flex-1 gap-3', showList && '@4xl:grid-cols-[220px_minmax(0,1fr)]')}>

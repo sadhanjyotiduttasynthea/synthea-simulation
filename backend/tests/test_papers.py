@@ -49,3 +49,18 @@ def test_local_summary_is_verbatim_with_pages(client):
     assert any("SYNTHETIC" in w for w in d["warnings"])
     r = client.post(f"/api/papers/{p['id']}/summary", json={"method": "claude"})
     assert r.status_code == 400  # no API key / opt-in -> refused, nothing sent
+
+
+def test_batch_upload_extracts_into_review_queue(client):
+    from app import sample_docs
+    pdf = sample_docs.build_sample_pdf()
+    files = [("files", ("a.pdf", pdf, "application/pdf")), ("files", ("same.pdf", pdf, "application/pdf")), ("files", ("notes.pdf", b"hello", "application/pdf"))]
+    r = client.post("/api/papers/batch", files=files, data={"library_ids": "lib-plant-protein", "extract": "rule"}).json()
+    ok, dup, bad = r["results"]
+    assert ok["ok"] and not ok["duplicate"] and ok["extracted"] > 10
+    assert dup["ok"] and dup["duplicate"] and dup["extracted"] is None  # same hash: not re-extracted
+    assert not bad["ok"] and "not a PDF" in bad["error"]
+    assert r["imported"] == 1 and r["failed"] == 1
+    pending = client.get(f"/api/papers/{ok['paper']['id']}/extractions").json()
+    assert all(e["status"] == "pending" for e in pending)  # nothing enters a library without review
+    assert ok["paper"]["library_ids"] == ["lib-plant-protein"]

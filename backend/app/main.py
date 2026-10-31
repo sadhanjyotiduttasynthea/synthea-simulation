@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import assistant, db, experiments, knowledge, optimize, printing, process, reports, routes_knowledge, routes_molecules, routes_papers, routes_science, routes_twin, routes_workspace, seed
+from . import assistant, db, experiments, knowledge, optimize, printing, process, reports, routes_formulation, routes_knowledge, routes_molecules, routes_papers, routes_science, routes_twin, routes_workspace, seed
 from .science import expression, nutrition, registry, thermal
 
 app = FastAPI(title="Synthea Simulation API", version="2.0.0")
@@ -40,6 +40,7 @@ app.include_router(routes_papers.router)
 app.include_router(routes_science.router)
 app.include_router(routes_twin.router)
 app.include_router(routes_molecules.router)
+app.include_router(routes_formulation.router)
 
 
 @app.exception_handler(ValueError)

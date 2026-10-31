@@ -26,6 +26,7 @@ CATEGORIES = {
     "mechanical": "Processing & mechanical properties",
     "chemical": "Chemical & biochemical properties",
     "model": "Experimental & predictive models",
+    "sensory": "Sensory & colour",
 }
 
 # key: (label, category, canonical unit or None (dimensionless/free), aliases)
@@ -91,6 +92,17 @@ PROPERTIES: dict[str, tuple[str, str, str | None, list[str]]] = {
     "hydrodynamic_radius": ("Hydrodynamic radius", "chemical", "nm", ["hydrodynamic radius", "stokes radius"]),
     "net_charge": ("Net charge", "chemical", None, ["net charge"]),
     "amino_acid_score": ("Amino acid score", "composition", None, ["amino acid score", "chemical score"]),
+    "reducing_sugars": ("Reducing sugars", "composition", "percent", ["reducing sugars", "reducing sugar content"]),
+    "hexanal_content": ("Hexanal content", "chemical", "mg/kg", ["hexanal content", "hexanal concentration"]),
+    # sensory & colour (ingredient- or formulation-level panel / instrument data; scores are not additive)
+    "beany_flavour_intensity": ("Beany flavour intensity", "sensory", None, ["beany flavour intensity", "beany flavor intensity", "beany off-flavour intensity"]),
+    "bitterness_intensity": ("Bitterness intensity", "sensory", None, ["bitterness intensity", "bitter taste intensity"]),
+    "aroma_descriptors": ("Aroma descriptors", "sensory", None, ["aroma descriptors", "odour descriptors", "odor descriptors"]),
+    "colour_l": ("Colour L*", "sensory", None, ["lightness l*", "colour l*", "color l*"]),
+    "colour_a": ("Colour a*", "sensory", None, ["redness a*", "colour a*", "color a*"]),
+    "colour_b": ("Colour b*", "sensory", None, ["yellowness b*", "colour b*", "color b*"]),
+    # observed interaction between two ingredients, reported in a paper (value_text + partner_material_id + rating set at review)
+    "ingredient_interaction": ("Ingredient interaction (reported)", "functional", None, ["ingredient interaction", "protein-polysaccharide interaction"]),
 }
 
 # experimental condition keys (canonical unit)

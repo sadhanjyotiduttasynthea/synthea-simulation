@@ -64,6 +64,22 @@ TEMPLATES = {
                        {"symbol": "T_ref", "latex": "T_{ref}", "name": "reference temperature", "unit": "K"}],
         "constants": {"R": {"value": R_GAS, "unit": "J/(mol*K)"}}, "provides": ["rate_constant", "kinetics_first_order"],
     },
+    "gab_sorption": {
+        "name": "GAB sorption isotherm", "category": "sorption",
+        "latex": r"X = \frac{X_m\,C\,K\,a_w}{(1-K a_w)(1-K a_w+C K a_w)}", "expression": "Xm * C * K * aw / ((1 - K * aw) * (1 - K * aw + C * K * aw))",
+        "dependent": {"symbol": "X", "name": "equilibrium moisture content (dry basis)", "unit": ""},
+        "variables": [{"symbol": "aw", "latex": "a_w", "name": "water activity", "unit": ""}],
+        "parameters": [{"symbol": "Xm", "latex": "X_m", "name": "monolayer moisture content", "unit": ""}, {"symbol": "C", "latex": "C", "name": "Guggenheim constant", "unit": ""},
+                       {"symbol": "K", "latex": "K", "name": "multilayer factor", "unit": ""}],
+        "provides": ["sorption_isotherm"],
+    },
+    "fourier_conduction": {
+        "name": "Fourier's law of heat conduction", "category": "thermal",
+        "latex": r"q = -k\,\frac{dT}{dx}", "expression": "-k * dTdx", "dependent": {"symbol": "q", "name": "heat flux", "unit": "W/m**2"},
+        "variables": [{"symbol": "dTdx", "latex": r"\frac{dT}{dx}", "name": "temperature gradient", "unit": "K/m"}],
+        "parameters": [{"symbol": "k", "latex": "k", "name": "thermal conductivity", "unit": "W/(m*K)"}],
+        "provides": ["heat_flux"],
+    },
     "linear_temperature": {
         "name": "Linear temperature dependence", "category": "thermal", "latex": r"y = y_0 + a\,(T - T_0)", "expression": "y0 + a * (T - T0)",
         "dependent": {"symbol": "y", "name": "property", "unit": ""},

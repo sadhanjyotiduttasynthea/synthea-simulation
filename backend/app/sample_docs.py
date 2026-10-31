@@ -79,6 +79,8 @@ def build_sample_pdf() -> bytes:
           Paragraph("The density of the 15 % dispersion was 1060 kg/m<super>3</super> at 25 &deg;C. Heat-set gels (15 % w/w, 90 &deg;C, 30 min) were tested in uniaxial compression: "
                     "the Young's modulus was 24.0 &plusmn; 2.1 kPa at 25 &deg;C (n = 5), the Poisson's ratio was 0.45 and the fracture stress was 9.5 kPa. "
                     "The effective moisture diffusivity of the gel was 2.1 x 10<super>-10</super> m<super>2</super>/s at 25 &deg;C.", body),
+          Paragraph("Moisture sorption isotherms of the isolate powder at 25 &deg;C (a<sub>w</sub> 0.11-0.85) were fitted with the GAB model, "
+                    "giving X<sub>m</sub> = 0.071 g/g, C = 9.4 and K = 0.86. Heat transfer in the gels was treated by Fourier's law of conduction with the conductivity given above.", body),
           Paragraph("4. Conclusions", sec),
           Paragraph("The synthetic data set provides concentration- and temperature-dependent rheological parameters for testing. "
                     "Values outside 10-20 % (w/w), 25-50 &deg;C and 0.1-100 s-1 were not studied.", body),

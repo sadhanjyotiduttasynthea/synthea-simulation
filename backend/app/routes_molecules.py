@@ -125,4 +125,9 @@ def to_library(mid: str, body: dict = Body(...)):
 @router.post("/molecules/interaction")
 def interaction(body: dict = Body(...)):
     a, b = _mol(body["a"]), _mol(body["b"])
-    return _wrap(molecules.interaction, a, b, body.get("distance"), bool(body.get("optimise", True)), int(body.get("orientations", 24)))
+    r = _wrap(molecules.interaction, a, b, body.get("distance"), bool(body.get("optimise", True)), int(body.get("orientations", 24)))
+    # keep the scene so formulation interaction panels can cite it (energies, H-bonds, label)
+    scene = db.put_doc("scenes", {"name": f"{a['name']} + {b['name']}", "a": a["id"], "b": b["id"], "computed": r["computed"], "label": r["label"],
+                                  "interaction_energy_kcal_mol": r.get("interaction_energy_kcal_mol"), "hydrogen_bonds": len(r.get("hydrogen_bonds") or []),
+                                  "method": r.get("method")})
+    return {**r, "scene_id": scene["id"]}

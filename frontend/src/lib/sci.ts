@@ -17,6 +17,8 @@ export interface PropertyRecord {
   source: Source; evidence_type: string; review_status: string; confidence?: string; notes?: string
   quality?: { score: number; flags: string[] }; history?: { t: string; note: string; changed?: string[] }[]; version?: number
   model_id?: string
+  /** for property 'ingredient_interaction': the partner material and the reviewer's rating */
+  partner_material_id?: string | null; rating?: 'compatible' | 'caution' | 'incompatible' | null
 }
 export interface Catalog {
   categories: Record<string, string>

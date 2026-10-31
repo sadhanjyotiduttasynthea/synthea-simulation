@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Plot } from '../components/Plot'
 import { PropertyEditor } from '../components/PropertyEditor'
+import { LibraryReport } from '../components/LibraryReport'
 import { Alert, Badge, Button, Field, Input, Modal, PageHeader, Panel, Select, Tabs, cx, inputCls } from '../components/ui'
 import { api, download, readFile } from '../lib/api'
 import { fmtSci } from '../lib/format'
@@ -30,6 +31,7 @@ export default function Libraries() {
   const [q, setQ] = useState('')
   const [tag, setTag] = useState('')
   const [libId, setLibId] = useState<string | null>(params.get('lib'))
+  const [reportOpen, setReportOpen] = useState(false)
   const [folderId, setFolderId] = useState<string | null>(null)
   const [openLibs, setOpenLibs] = useState<Record<string, boolean>>({})
   const [matId, setMatId] = useState<string | null>(params.get('mat'))
@@ -149,8 +151,10 @@ export default function Libraries() {
           <Button size="sm" onClick={newMaterial}><Plus className="h-3.5 w-3.5" />Material</Button>
           <Button size="sm" onClick={importLib}><Upload className="h-3.5 w-3.5" />Import library</Button>
           {lib && <Button size="sm" onClick={() => exportLib(lib)}><Download className="h-3.5 w-3.5" />Export library</Button>}
+          {lib && <Button size="sm" variant="primary" onClick={() => setReportOpen(true)} title="Combined report of every PDF filed in this library">Summarize all PDFs</Button>}
         </>}
       />
+      {lib && <LibraryReport libId={lib.id} libName={lib.name} open={reportOpen} onClose={() => setReportOpen(false)} />}
       <div className="grid min-h-0 flex-1 gap-3 @4xl:grid-cols-[230px_minmax(0,1fr)]">
         <Panel title="Library manager" bodyClass="p-1" className="@4xl:overflow-y-auto">
           <button onClick={() => { setLibId(null); setFolderId(null); setParams({}) }} className={cx('flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-xs', !libId ? 'bg-neutral-900 text-white dark:bg-neutral-700' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800')}>
