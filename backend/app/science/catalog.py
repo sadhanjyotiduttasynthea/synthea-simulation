@@ -37,7 +37,7 @@ PROPERTIES: dict[str, tuple[str, str, str | None, list[str]]] = {
     "moisture": ("Moisture content", "composition", "percent", ["moisture content", "water content", "moisture"]),
     "fibre": ("Dietary fibre", "composition", "percent", ["dietary fibre", "dietary fiber", "fibre", "fiber"]),
     "ash": ("Ash content", "composition", "percent", ["ash content", "ash"]),
-    "sodium": ("Sodium", "composition", "g/(100 g)", ["sodium"]),
+    "sodium": ("Sodium", "composition", "percent", ["sodium"]),
     "amino_acid_profile": ("Amino acid profile", "composition", None, ["amino acid profile", "amino acid composition"]),
     # thermal
     "thermal_conductivity": ("Thermal conductivity", "thermal", "W/(m*K)", ["thermal conductivity"]),
@@ -116,6 +116,7 @@ EVIDENCE_TYPES = {
 REVIEW_STATUSES = ("extracted", "reviewed", "approved", "rejected", "deprecated")
 
 _UNIT_FIXES = [
+    (r"g\s*/\s*\(?\s*100\s*g\s*\)?", "percent"), (r"g\s*/\s*hg", "percent"),
     (r"°\s*C", "degC"), (r"º\s*C", "degC"), (r"(?<![a-zA-Z])℃", "degC"), (r"°\s*F", "degF"),
     (r"(?<![a-zA-Z])K(?![a-zA-Z])", "K"),
     (r"Pa\s*[·.\s]\s*s\s*\^?\s*n", "Pa*s**n"), (r"Pa\s*[·.\s]\s*s(?![a-z])", "Pa*s"), (r"mPa\s*[·.\s]\s*s", "mPa*s"),

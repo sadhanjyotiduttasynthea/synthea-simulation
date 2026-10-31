@@ -8,9 +8,11 @@ export const eur = (v: number | null | undefined, d = 2) => (v === null || v ===
 export const pct = (v: number | null | undefined, d = 2) => (v === null || v === undefined ? '—' : `${fmt(v, d)} %`)
 
 export function fmtSci(v: number | null | undefined, d = 3): string {
-  if (v === null || v === undefined) return '—'
-  if (v !== 0 && (Math.abs(v) < 1e-3 || Math.abs(v) >= 1e5)) return v.toExponential(d - 1)
-  return fmt(v, d)
+  if (v === null || v === undefined || Number.isNaN(v)) return '—'
+  if (v === 0) return '0'
+  if (Math.abs(v) < 1e-3 || Math.abs(v) >= 1e5) return v.toExponential(Math.max(d - 1, 1)).replace(/\.?0+e/, 'e')
+  const s = Number(v.toPrecision(Math.max(d, 1)))
+  return s.toLocaleString('en-GB', { maximumFractionDigits: 6 })
 }
 
 export const NUTRIENT_LABELS: Record<string, string> = {

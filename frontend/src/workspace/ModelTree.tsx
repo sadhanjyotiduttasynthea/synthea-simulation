@@ -77,7 +77,7 @@ export function ModelTree() {
       { id: 'geometry', label: 'Geometry', icon: Cuboid, to: '/geometry',
         actions: ['cuboid', 'cylinder', 'sphere', 'rectangle', 'circle'].map((k) => ({ label: `Add ${k}`, to: '/geometry', cmd: 'geometry.add', payload: k })),
         children: (idx?.geometry ?? []).map((g) => ({ id: `geo:${g.id}`, label: g.name, icon: Cuboid, to: `/geometry?sel=${g.id}`, badge: g.kind })) },
-      { id: 'materials', label: 'Materials', icon: Globe2, to: '/libraries',
+      { id: 'materials', label: 'Materials', icon: Globe2,
         children: [
           { id: 'ingredients', label: 'Ingredient table', icon: Beaker, to: '/materials' },
           { id: 'molecules', label: 'Molecular structures', icon: Atom, to: '/molecules' },

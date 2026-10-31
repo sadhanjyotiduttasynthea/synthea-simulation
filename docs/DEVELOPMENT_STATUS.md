@@ -7,7 +7,7 @@ Branch: `development`
 | Milestone | Status |
 |---|---|
 | R1 Desktop & interface architecture | done — Tauri 2 shell, ribbon, model builder, graphics window, settings, messages |
-| R2 Global scientific library manager | in progress |
+| R2 Global scientific library manager | done |
 | R3 Research-paper PDF ingestion | planned |
 | R4 AI scientific extraction & review | planned |
 | R5 Scientific model registry | planned |
@@ -30,6 +30,23 @@ Branch: `development`
   exit, per-user data folder. PyInstaller sidecar build script; Windows installer workflow (NSIS/MSI) on
   `windows-latest`. Linux debug build compiled and run under Xvfb in the build session (screenshot in
   `docs/screenshots/desktop-workspace.png`).
+### R2 — Global scientific library manager
+- Multiple global libraries (8 starter libraries) with folders, rename, archive, export/import (`synthea-library/1`);
+  a material is one global record placed in several libraries (no duplication on import — existing records are linked).
+- Material records: category, synonyms, tags, identity/processing history, versions (new version copies records and
+  keeps sources), change history; search across libraries (names, synonyms, tags, property names) and tag filter.
+- Condition-aware property records: value / range / text, unit + automatic normalisation (pint; dimensional errors
+  reported), uncertainty and n, experimental conditions, method, sample composition, source (paper, page, passage,
+  table), evidence type (direct, calculated, fitted, author prediction, AI-inferred, manual, illustrative), review status
+  (extracted → reviewed → approved; rejected/deprecated), quality indicator with flags, full version history; approved
+  records are deprecated rather than deleted.
+- Compare across sources: plot vs any condition with error bars, side-by-side table, automatic conflict warnings for
+  comparable conditions (>25 % difference) — never averaged.
+- Data migration: existing ingredient-table data migrated into library materials/records with provenance preserved;
+  idempotent; renormalisation pass when the unit catalogue changes.
+- Overview page redesigned around the knowledge → simulation pipeline (cost KPIs removed from the overview).
+- Tests: +5 backend tests (units, migration idempotence, coexistence/conflicts, history/deprecation, export/import).
+
 - Database: schema-migration table; v2 adds scientific collections and parent links without touching existing data
   (verified on a copy of an existing database).
 

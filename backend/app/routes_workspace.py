@@ -70,3 +70,39 @@ def tree(project_id: str):
         "geometry": geo_objs,
         "twins": [{"id": t["id"], "name": t.get("name", t["id"]), "physics": [p.get("kind") for p in t.get("physics", [])]} for t in twins],
     }
+
+
+@router.get("/workspace/summary")
+def summary(project_id: str):
+    props = db.list_docs("properties")
+    models = db.list_docs("sci_models")
+    exts = db.list_docs("extractions")
+    twins = [t for t in db.list_docs("twins") if t.get("project_id") == project_id]
+    studies = [s for s in db.list_docs("studies") if s.get("project_id") == project_id]
+    geos = [g for g in db.list_docs("geometries") if g.get("project_id") == project_id]
+    exps = [e for e in db.list_docs("experiments") if e.get("project_id") == project_id]
+    count = lambda xs, key, val: sum(1 for x in xs if x.get(key) == val)  # noqa: E731
+    recent = []
+    for coll, label in (("papers", "paper"), ("sci_models", "model"), ("materials", "material"), ("twins", "digital twin"), ("studies", "study"), ("libraries", "library")):
+        for d in db.list_docs(coll):
+            if coll in ("twins", "studies") and d.get("project_id") != project_id:
+                continue
+            title = (d.get("metadata") or {}).get("title") or d.get("name") or d["id"]
+            recent.append({"kind": label, "id": d["id"], "title": title, "updated_at": d.get("updated_at", "")})
+    recent.sort(key=lambda r: r["updated_at"], reverse=True)
+    return {
+        "libraries": sum(1 for l in db.list_docs("libraries") if not l.get("archived")),
+        "materials": db.count("materials"),
+        "properties": {"total": len(props), "approved": count(props, "review_status", "approved"), "reviewed": count(props, "review_status", "reviewed"),
+                       "extracted": count(props, "review_status", "extracted")},
+        "papers": db.count("papers"),
+        "extractions_pending": count(exts, "status", "pending"),
+        "models": {"total": len(models), "approved": sum(1 for m in models if m.get("status") in ("approved", "validated")),
+                   "validated": count(models, "status", "validated"), "extracted": count(models, "status", "extracted")},
+        "geometry_objects": sum(len(g.get("objects", [])) for g in geos),
+        "twins": len(twins),
+        "studies": len(studies),
+        "studies_with_validation": sum(1 for s in studies if (s.get("validation") or {}).get("metrics")),
+        "experiments": len(exps),
+        "recent": recent[:12],
+    }

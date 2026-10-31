@@ -333,10 +333,30 @@ ING_LIBS = {"pea-protein-isolate": ["lib-plant-protein"], "potato-starch": ["lib
             "sunflower-oil": ["lib-lipid"], "water": ["lib-custom", "lib-thermal"], "salt": ["lib-custom"]}
 
 
+NORMALISATION_VERSION = 2
+
+
+def renormalise_all():
+    """Recompute unit normalisation/quality of stored records when the unit catalogue changes."""
+    flag = db.get_doc("settings", "kb_norm")
+    if flag and flag.get("version") == NORMALISATION_VERSION:
+        return
+    for p in db.list_docs("properties"):
+        meta = catalog.property_meta(p["property"])
+        if p.get("value") is not None:
+            p["normalized"] = catalog.normalize(p["value"], p.get("unit"), meta["unit"])
+            if meta["unit"] is None:
+                p["normalized"] = {"value": p["value"], "unit": p.get("unit") or "", "ok": True, "note": None}
+        p["quality"] = quality(p)
+        db.put_doc("properties", p)
+    db.put_doc("settings", {"id": "kb_norm", "name": "kb_norm", "version": NORMALISATION_VERSION})
+
+
 def ensure_seeded():
     """Data migration: create starter libraries and materials from the existing ingredient table (once)."""
     flag = db.get_doc("settings", "kb_seeded")
     if flag:
+        renormalise_all()
         return
     for lid, name, desc in STARTER_LIBRARIES:
         if not db.get_doc("libraries", lid):
@@ -375,3 +395,4 @@ def ensure_seeded():
                            "evidence_type": "manual_entry", "review_status": "reviewed" if p == "literature" else "extracted",
                            "source": {"citation": refs[0] if refs else "Migrated from ingredient table"}}, note="migrated")
     db.put_doc("settings", {"id": "kb_seeded", "name": "kb_seeded", "at": _now()})
+    renormalise_all()
