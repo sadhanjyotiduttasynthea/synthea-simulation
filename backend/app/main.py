@@ -152,7 +152,7 @@ def update_project(pid: str, doc: dict = Body(...)):
 @app.delete("/api/projects/{pid}")
 def delete_project(pid: str):
     _require("projects", pid)
-    for c in ("formulations", "experiments", "process_flows"):
+    for c in ("formulations", "experiments", "process_flows", "geometries", "twins", "studies"):
         db.delete_where_project(c, pid)
     db.delete_doc("projects", pid)
     return {"deleted": pid}
@@ -162,7 +162,7 @@ def delete_project(pid: str):
 def export_project(pid: str):
     p = _require("projects", pid)
     bundle = {"format": "synthea-project/1", "project": p}
-    for c in ("formulations", "experiments", "process_flows"):
+    for c in ("formulations", "experiments", "process_flows", "geometries", "twins", "studies"):
         bundle[c] = [d for d in db.list_docs(c) if d.get("project_id") == pid]
     used = {l["ingredient_id"] for f in bundle["formulations"] for l in f.get("lines", [])}
     bundle["ingredients"] = [i for i in db.list_docs("ingredients") if i["id"] in used]
@@ -181,16 +181,28 @@ def import_project(bundle: dict = Body(...)):
             db.put_doc("ingredients", ing)
     proj["id"] = new_id
     proj["name"] = proj.get("name", "Imported") + " (imported)"
-    for c in ("formulations", "experiments", "process_flows"):
+    for c in ("formulations", "experiments", "process_flows", "geometries", "twins", "studies"):
         for d in bundle.get(c, []):
             nd = dict(d)
             old = nd.get("id")
-            nd["id"] = uuid.uuid4().hex[:12]
+            nd["id"] = f"geo-{new_id}" if c == "geometries" else uuid.uuid4().hex[:12]
             idmap[old] = nd["id"]
             nd["project_id"] = new_id
             db.put_doc(c, nd)
     if proj.get("active_formulation_id") in idmap:
         proj["active_formulation_id"] = idmap[proj["active_formulation_id"]]
+    # re-link references inside twins/studies/geometry to the new ids
+    for c in ("twins", "studies", "geometries"):
+        for d in db.list_docs(c):
+            if d.get("project_id") != new_id:
+                continue
+            txt = __import__("json").dumps(d)
+            for o, n in idmap.items():
+                if o:
+                    txt = txt.replace(f'"{o}"', f'"{n}"')
+            db.put_doc(c, __import__("json").loads(txt))
+    bundle_libs = {"library_refs": sorted({m for d in bundle.get("twins", []) for m in [x.get("material_id") for x in d.get("materials", [])] if m})}
+    proj["imported_library_refs"] = bundle_libs["library_refs"]
     return db.put_doc("projects", proj)
 
 

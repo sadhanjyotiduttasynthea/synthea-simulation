@@ -11,7 +11,7 @@ Branch: `development`
 | R3 Research-paper PDF ingestion | done |
 | R4 AI scientific extraction & review | done |
 | R5 Scientific model registry | done |
-| R6 Geometry editor | planned |
+| R6 Geometry editor | done |
 | R7 Molecular visualization | planned |
 | R8 Digital twin, solvers, results | planned |
 | R9 Desktop packaging & final integration | planned |
@@ -46,6 +46,21 @@ Branch: `development`
   idempotent; renormalisation pass when the unit catalogue changes.
 - Overview page redesigned around the knowledge → simulation pipeline (cost KPIs removed from the overview).
 - Tests: +5 backend tests (units, migration idempotence, coexistence/conflicts, history/deprecation, export/import).
+
+### R6 — Geometry editor
+- One geometry document per project (saved with the project and in `.synthea` files): points, lines, rectangles,
+  circles, polygons, cuboids, cylinders, spheres, polygon extrusions and imported STL meshes; engineering coordinates
+  (mm, z up).
+- Create from the ribbon, Model Builder context menu or palette; geometry tree with visibility toggles (mirrored in the
+  Model Builder); click-to-select in the graphics window with highlight; inspector for name, dimensions, vertices,
+  position, rotation, scale, colour and material assignment (library material or project formulation); duplicate/delete;
+  autosave.
+- Graphics: solid/wireframe/transparent, section plane, measurement tool, grid/axes, camera presets, fit, 2D (XY) mode,
+  colour-by-material with legend.
+- Measurements (calculated): analytic volume/area for primitives and extrusions, triangle-mesh integration for STL.
+- STL import (binary/ASCII) and binary STL export of visible 3D objects.
+- Tests: +4 vitest (analytic measures, scaling, extrusion, STL round trip).
+- Not claimed: no CAD Boolean operations, no fillets, no constraint solver.
 
 ### R5 — Scientific model registry
 - Model records: name, template, LaTeX display form (KaTeX), machine-readable expression for the restricted parser,

@@ -106,3 +106,45 @@ def summary(project_id: str):
         "experiments": len(exps),
         "recent": recent[:12],
     }
+
+
+# ------------------------------------------------------------------ geometry (one geometry document per project)
+DEMO_OBJECTS = [
+    {"id": "obj-bar", "name": "Snack bar", "kind": "cuboid", "dims": {"width": 60.0, "depth": 20.0, "height": 12.0},
+     "position": [0.0, 0.0, 6.0], "rotation": [0.0, 0.0, 0.0], "scale": [1.0, 1.0, 1.0], "visible": True,
+     "material": {"type": "formulation", "id": "baseline-pea-snack"}, "color": "#c9a46c"},
+    {"id": "obj-die", "name": "Extrusion die channel", "kind": "cylinder", "dims": {"radius": 2.0, "height": 20.0},
+     "position": [60.0, 0.0, 10.0], "rotation": [0.0, 90.0, 0.0], "scale": [1.0, 1.0, 1.0], "visible": True,
+     "material": {"type": "material", "id": "mat-pea-protein-isolate"}, "color": "#e11d48"},
+]
+
+
+def _geometry_for(project_id: str) -> dict:
+    gid = f"geo-{project_id}"
+    g = db.get_doc("geometries", gid)
+    if not g:
+        objs = DEMO_OBJECTS if project_id == "demo-pea-snack" else []
+        g = db.put_doc("geometries", {"id": gid, "project_id": project_id, "name": "Geometry 1", "units": "mm", "objects": [dict(o) for o in objs]})
+    return g
+
+
+@router.get("/geometries")
+def get_geometry(project_id: str):
+    return _geometry_for(project_id)
+
+
+@router.put("/geometries/{gid}")
+def put_geometry(gid: str, body: dict = Body(...)):
+    g = db.get_doc("geometries", gid)
+    if not g:
+        raise ValueError("geometry not found")
+    objs = body.get("objects", [])
+    size = sum(len(o.get("stl_base64") or "") for o in objs)
+    if size > 30_000_000:
+        raise ValueError("Imported meshes exceed 30 MB; simplify the STL before import.")
+    ids = [o.get("id") for o in objs]
+    if len(ids) != len(set(ids)) or any(not i for i in ids):
+        raise ValueError("Every geometry object needs a unique id")
+    g["objects"] = objs
+    g["name"] = body.get("name", g.get("name"))
+    return db.put_doc("geometries", g)
