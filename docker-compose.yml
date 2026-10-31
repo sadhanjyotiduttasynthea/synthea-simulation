@@ -1,0 +1,18 @@
+# Synthea Simulation on one Mac, reachable from every computer on the same Wi-Fi.
+# Normally started with Start-Synthea.command (it creates .env and prints the address).
+name: synthea                              # fixed project name -> volume "synthea_synthea-data"
+services:
+  synthea:
+    build: .
+    image: synthea-simulation:local
+    container_name: synthea
+    ports:
+      - "${SYNTHEA_PORT:-8000}:8000"     # all network interfaces of the Mac -> reachable on the local network
+    env_file: .env                         # SYNTHEA_PASSWORD, SYNTHEA_SECRET (created on first start, never committed)
+    environment:
+      SYNTHEA_DATA_DIR: /data
+    volumes:
+      - synthea-data:/data                 # database + uploaded PDFs, kept across restarts and rebuilds
+    restart: "no"                          # runs only while started by the script
+volumes:
+  synthea-data:

@@ -138,6 +138,7 @@ export function GraphicsView({ children, dimension = '3d', toolbar, overlay, gri
   const controls = useRef<OrbitImpl>(null)
   const ortho = dimension === '2d'
   useEffect(() => setFit((f) => f + 1), [fitSignal])
+  useEffect(() => { const t = setTimeout(() => setFit((f) => f + 1), 300); return () => clearTimeout(t) }, [])
 
   const onPick = useCallback((e: ThreeEvent<PointerEvent>) => {
     if (!measuring) return

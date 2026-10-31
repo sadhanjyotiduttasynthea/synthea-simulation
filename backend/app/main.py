@@ -51,6 +51,8 @@ def backup_status():
 @app.post("/api/backup/now")
 def backup_now():
     return backup.now(force=True)
+
+
 app.include_router(routes_workspace.router)
 app.include_router(routes_knowledge.router)
 app.include_router(routes_papers.router)
@@ -178,7 +180,7 @@ def update_project(pid: str, doc: dict = Body(...)):
 @app.delete("/api/projects/{pid}")
 def delete_project(pid: str):
     _require("projects", pid)
-    for c in ("formulations", "experiments", "process_flows"):
+    for c in ("formulations", "experiments", "process_flows", "geometries", "twins", "studies"):
         db.delete_where_project(c, pid)
     db.delete_doc("projects", pid)
     return {"deleted": pid}
@@ -188,7 +190,7 @@ def delete_project(pid: str):
 def export_project(pid: str):
     p = _require("projects", pid)
     bundle = {"format": "synthea-project/1", "project": p}
-    for c in ("formulations", "experiments", "process_flows"):
+    for c in ("formulations", "experiments", "process_flows", "geometries", "twins", "studies"):
         bundle[c] = [d for d in db.list_docs(c) if d.get("project_id") == pid]
     used = {l["ingredient_id"] for f in bundle["formulations"] for l in f.get("lines", [])}
     bundle["ingredients"] = [i for i in db.list_docs("ingredients") if i["id"] in used]
@@ -207,16 +209,28 @@ def import_project(bundle: dict = Body(...)):
             db.put_doc("ingredients", ing)
     proj["id"] = new_id
     proj["name"] = proj.get("name", "Imported") + " (imported)"
-    for c in ("formulations", "experiments", "process_flows"):
+    for c in ("formulations", "experiments", "process_flows", "geometries", "twins", "studies"):
         for d in bundle.get(c, []):
             nd = dict(d)
             old = nd.get("id")
-            nd["id"] = uuid.uuid4().hex[:12]
+            nd["id"] = f"geo-{new_id}" if c == "geometries" else uuid.uuid4().hex[:12]
             idmap[old] = nd["id"]
             nd["project_id"] = new_id
             db.put_doc(c, nd)
     if proj.get("active_formulation_id") in idmap:
         proj["active_formulation_id"] = idmap[proj["active_formulation_id"]]
+    # re-link references inside twins/studies/geometry to the new ids
+    for c in ("twins", "studies", "geometries"):
+        for d in db.list_docs(c):
+            if d.get("project_id") != new_id:
+                continue
+            txt = __import__("json").dumps(d)
+            for o, n in idmap.items():
+                if o:
+                    txt = txt.replace(f'"{o}"', f'"{n}"')
+            db.put_doc(c, __import__("json").loads(txt))
+    bundle_libs = {"library_refs": sorted({m for d in bundle.get("twins", []) for m in [x.get("material_id") for x in d.get("materials", [])] if m})}
+    proj["imported_library_refs"] = bundle_libs["library_refs"]
     return db.put_doc("projects", proj)
 
 
@@ -470,6 +484,14 @@ def toolpath(body: dict = Body(...)):
     if body.get("shape") == "geometry" and not (body.get("geometry") or {}).get("objects") and body.get("project_id"):
         g = db.get_doc("geometries", f"geo-{body['project_id']}") or {}
         body["geometry"] = {**(body.get("geometry") or {}), "objects": g.get("objects") or []}
+    if body.get("rheology_model_id"):
+        from . import sci_registry
+        m = db.get_doc("sci_models", body["rheology_model_id"])
+        if not m or m.get("status") not in sci_registry.USABLE:
+            raise ValueError("Selected rheological model is not approved for calculation.")
+        hb = sci_registry.hb_parameters(m)
+        body["rheology"] = {**hb, "source": f"approved model '{m['name']}' ({(m.get('source') or {}).get('citation', 'no source')})",
+                            "shear_rate_range": (m.get("validity") or {}).get("gamma_dot")}
     if body.get("lines"):
         ev = _evaluate_lines(body["lines"], 30.0, float(body.get("extrusion_temperature_c", 25.0)))
         if ev.get("thermal"):
@@ -524,13 +546,24 @@ def report_pdf(body: dict = Body(...)):
 
 
 # ---------------------------------------------------------------- static frontend (production build)
-_dist = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
-if os.path.isdir(_dist):
+# frontend/dist (npm run build) if present, otherwise the single-file build standalone/Synthea-Simulation.html,
+# so the platform runs from a plain checkout without Node.js.
+_root = os.path.join(os.path.dirname(__file__), "..", "..")
+_dist = os.path.realpath(os.path.join(_root, "frontend", "dist"))
+_single = os.environ.get("SYNTHEA_STATIC_HTML") or os.path.join(_root, "standalone", "Synthea-Simulation.html")
+if os.environ.get("SYNTHEA_STATIC_HTML") is None and os.path.isdir(_dist):
     app.mount("/assets", StaticFiles(directory=os.path.join(_dist, "assets")), name="assets")
 
     @app.get("/{path:path}")
     def spa(path: str):
-        f = os.path.join(_dist, path)
-        if path and os.path.isfile(f):
+        f = os.path.realpath(os.path.join(_dist, path))
+        if path and f.startswith(_dist + os.sep) and os.path.isfile(f):
             return FileResponse(f)
         return FileResponse(os.path.join(_dist, "index.html"))
+elif os.path.isfile(_single):
+
+    @app.get("/{path:path}")
+    def spa_single(path: str):
+        if path.startswith("api/"):
+            return JSONResponse({"detail": "Not Found"}, status_code=404)
+        return FileResponse(_single, media_type="text/html")

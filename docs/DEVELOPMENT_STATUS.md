@@ -1,6 +1,26 @@
 # Synthea Simulation — Development Status
 
-Branch: `development` (R7/R8 work on branch `ali` — see `docs/DESIGN_DECISIONS_ALI.md`)
+Branch: `main` — merge of `ali` (faba bean, three modules, twins, molecules, hosting) and `development` (R9 desktop
+release, single-file HTML build, Windows launcher) plus the Mac Docker hosting kit from `hosting-development`.
+
+## Merge into `main`
+
+`ali` and `development` both implemented R5–R8 independently (model registry, geometry editor, molecules, digital
+twins) on the same API routes and database collections, so only one implementation of each could be kept:
+
+* Kept from `ali`: faba bean data, three-module navigation, Materials/Process/Print, model registry table, geometry
+  editor with STL slicing, molecules (`app/molecules.py`, `routes_molecules.py`), digital twin (`app/twin/`,
+  `routes_twin.py`, background jobs), password sign-in and backups.
+* Kept from `development`: R9 desktop packaging (About & diagnostics dialog, start-up splash, native-menu arguments,
+  sidecar excludes, PyMuPDF optional-module block), single-file HTML build (`npm run build:standalone`,
+  `standalone/Synthea-Simulation.html`, served when `frontend/dist` is absent), `Start-Synthea.bat`, project
+  export/import of geometries/twins/studies, Plotly redraw serialisation, approved-model rheology source for the
+  3D Printing Lab nozzle calculation with shear-rate-range extrapolation warning.
+* Kept from `hosting-development`: Mac Docker hosting (`docker-compose.yml`, `Start/Stop/Backup-Synthea.command`,
+  `docs/HOSTING_MAC.md`).
+* Dropped (superseded by `ali`): `development`'s `twins.py`, `solvers.py`, `demo.py` (demo pipeline), its
+  molecule/twin/geometry routes in `routes_science.py`/`routes_workspace.py`, `lib/geometry.ts`, and its versions of
+  the Twin, Molecules, Geometry, Models and Dashboard pages. They remain in the history of `development`.
 
 ## Change request — faba bean, three modules (branch `ali`)
 
@@ -23,11 +43,11 @@ Changelog (one commit per step; the app builds and runs after each). Done-check:
 | R2 Global scientific library manager | done |
 | R3 Research-paper PDF ingestion | done |
 | R4 AI scientific extraction & review | done |
-| R5 Scientific model registry | planned |
-| R6 Geometry editor | planned |
-| R7 Molecular visualization | done (branch `ali`) |
-| R8 Digital twin, solvers, results | done (branch `ali`) — 2-D solvers |
-| R9 Desktop packaging & final integration | planned |
+| R5 Scientific model registry | done |
+| R6 Geometry editor | done |
+| R7 Molecular visualization | done |
+| R8 Digital twin, solvers, results | done — 2-D solvers |
+| R9 Desktop packaging & final integration | done (Windows installer built by CI; not run here) |
 
 ### R8 — Digital twin, solvers, results (branch `ali`)
 - Twin = 2-D cross-section (parametric shapes or custom polygon, editable dimensions, depth) + library material +

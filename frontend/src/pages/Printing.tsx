@@ -61,6 +61,11 @@ export default function Printing() {
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(10)
   const [progress, setProgress] = useState(0)
+  const [rheoSrc, setRheoSrc] = useState<string>('formulation')
+  const [hbModels, setHbModels] = useState<{ id: string; name: string; template?: string; status: string }[]>([])
+  useEffect(() => {
+    api.get<typeof hbModels>('/api/sci-models').then((ms) => setHbModels(ms.filter((m) => ['herschel_bulkley', 'power_law', 'newtonian'].includes(m.template ?? '') && ['approved', 'validated'].includes(m.status)))).catch(() => setHbModels([]))
+  }, [])
   const simTime = useRef(0)
   const form = formulations.find((f) => f.id === formId) ?? active
 
@@ -75,8 +80,8 @@ export default function Printing() {
     setBusy(true)
     setErr(null)
     try {
-      const rheo = form?.rheology && form.rheology.yield_stress_pa !== null ? { ...form.rheology, source: `${form.rheology.data_type}: ${form.rheology.source || 'formulation record'}` } : null
-      const r = await api.post<PrintResult>('/api/print/toolpath', { ...params, lines: form?.lines ?? [], rheology: rheo, project_id: project?.id })
+      const rheo = rheoSrc === 'formulation' && form?.rheology && form.rheology.yield_stress_pa !== null ? { ...form.rheology, source: `${form.rheology.data_type}: ${form.rheology.source || 'formulation record'}` } : null
+      const r = await api.post<PrintResult>('/api/print/toolpath', { ...params, lines: form?.lines ?? [], rheology: rheo, rheology_model_id: rheoSrc !== 'formulation' ? rheoSrc : undefined, project_id: project?.id })
       setRes(r)
       simTime.current = 0
       setProgress(0)
@@ -92,7 +97,7 @@ export default function Printing() {
       setBusy(false)
     }
   }
-  useEffect(() => { generate() }, [form?.id])  // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { generate() }, [form?.id, rheoSrc])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const g = (k: keyof PrintParams['geometry'], v: number | null) => setP({ ...p, geometry: { ...p.geometry, [k]: v ?? 0 } })
   const num = (k: keyof PrintParams, v: number | null) => setP({ ...p, [k]: v })
@@ -147,7 +152,13 @@ export default function Printing() {
           <Panel title="Material">
             <Field label="Formulation"><Select value={form?.id ?? ''} onChange={(e) => setFormId(e.target.value)}>{formulations.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</Select></Field>
             <div className="mt-2 text-[11px]">Rheology: {form?.rheology && form.rheology.yield_stress_pa !== null ? <><Prov kind={form.rheology.data_type} /> τ₀ {form.rheology.yield_stress_pa} Pa · K {form.rheology.consistency_index_pa_sn} · n {form.rheology.flow_behaviour_index}</> : <Prov kind="missing" />}</div>
-            <p className="mt-1 text-[10px] text-neutral-500">Density for mass calculation: Choi–Okos at extrusion temperature (calculated).</p>
+            <Field label="Rheology source for nozzle calculations" className="mt-2">
+              <Select value={rheoSrc} onChange={(e) => setRheoSrc(e.target.value)}>
+                <option value="formulation">formulation record (measured HB)</option>
+                {hbModels.map((m) => <option key={m.id} value={m.id}>approved model: {m.name}</option>)}
+              </Select>
+            </Field>
+            <p className="mt-1 text-[10px] text-neutral-500">Density for mass calculation: Choi–Okos at extrusion temperature (calculated). Nozzle results outside the model's validated shear-rate range are flagged.</p>
             <div className="mt-2">{project && <OptimizedProduct projectId={project.id} onUse={(id) => { setFormId(id); toast('Formulation of the optimized product selected', 'success') }} />}</div>
           </Panel>
           <ExtrusionSettings ex={p.extrusion ?? DEFAULT_EXTRUSION} onChange={(ex) => setP({ ...p, extrusion: ex })} />

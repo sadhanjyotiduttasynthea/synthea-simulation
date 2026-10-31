@@ -70,11 +70,48 @@ npm run dev
 The SQLite database is created automatically at `backend/data/synthea.db` and seeded with the demo project. Use
 **Settings → Data → Reset demo data** to restore it.
 
-### Hosting for a team (free)
+### Hosting on a Mac for the team (same Wi-Fi)
 
-Free options without payment or credit card — Hugging Face Spaces with automatic backups to a private dataset
-(recommended), a laptop with a Cloudflare quick tunnel, or the local network: [`docs/DEPLOY_FREE.md`](docs/DEPLOY_FREE.md).
-Set `SYNTHEA_PASSWORD` to protect the site with a shared team password.
+Double-click **`Start-Synthea.command`** (Docker Desktop required): it builds and starts the app in Docker, asks once for
+a team password, and prints the address for everyone on the same Wi-Fi (e.g. `http://192.168.1.23:8000`).
+`Stop-Synthea.command` stops it, `Backup-Synthea.command` saves the data. Guide and checklist:
+[`docs/HOSTING_MAC.md`](docs/HOSTING_MAC.md). Other options (own server, off-site backups): [`docs/DEPLOY_FREE.md`](docs/DEPLOY_FREE.md).
+
+### Quickest on Windows (no installer, no Node.js)
+
+1. Install **Python 3.12** from <https://www.python.org/downloads/> and tick **"Add python.exe to PATH"**.
+2. Download this branch as a ZIP and unzip it.
+3. Double-click **`Start-Synthea.bat`**. The first run installs the scientific packages (a few minutes); the browser
+   then opens <http://localhost:8000>. Keep the black window open while you work; close it to stop.
+
+The whole interface is the single file [`standalone/Synthea-Simulation.html`](standalone/Synthea-Simulation.html)
+(rebuild with `cd frontend && npm run build:standalone`). The compute engine serves it; opened directly from disk it
+shows a start page that waits for the engine and then opens the platform. Everything runs on `127.0.0.1` only.
+
+### Desktop application (Tauri 2)
+
+The desktop app starts its own local compute engine (a packaged Python process) bound to `127.0.0.1` on a random port
+with a per-session token, stores data in the per-user application folder, and stops the engine on exit.
+
+* **Windows installer:** the [Desktop build workflow](.github/workflows/desktop.yml) builds NSIS (`.exe`) and MSI
+  installers on `windows-latest` (run it from the Actions tab; artifacts are attached to the run).
+* **Linux:** `npx tauri build --bundles deb,appimage` in `desktop/` (verified in the build environment).
+
+Build steps (any OS):
+
+```bash
+pip install -r backend/requirements.txt pyinstaller
+```
+
+```bash
+python scripts/build_sidecar.py
+```
+
+```bash
+cd frontend && npm ci && cd ../desktop && npm ci && npx tauri build
+```
+
+Development window: `cd desktop && SYNTHEA_DEV_PYTHON=/path/to/python npx tauri dev` (uses the backend sources).
 
 ### Optional: Claude-powered assistant
 

@@ -276,6 +276,10 @@ def generate(params: dict) -> dict:
             "plug_fraction": pf["plug_radius_m"] / (D / 2), "model": pf["model"], "source": rheo.get("source", "user input"),
             "note": "Capillary pressure drop only; syringe/barrel, contraction and entrance losses not included.",
         }
+        rng = rheo.get("shear_rate_range")
+        if rng and not (rng[0] <= pf["wall_shear_rate_1_s"] <= rng[1]):
+            out["warnings"].append(f"EXTRAPOLATION: nozzle wall shear rate {pf['wall_shear_rate_1_s']:.3g} 1/s is outside the validated range {rng} of the rheological model; nozzle results are not validated.")
+            out["nozzle"]["extrapolated"] = True
         bead_weight_stress = (density or 1100) * 9.81 * height / 1000
         out["nozzle"]["self_weight_stress_base_pa"] = bead_weight_stress
         out["nozzle"]["yield_vs_self_weight"] = rheo["yield_stress_pa"] / bead_weight_stress if bead_weight_stress > 0 else None

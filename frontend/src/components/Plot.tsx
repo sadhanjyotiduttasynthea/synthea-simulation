@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Config, Data, Layout } from 'plotly.js-dist-min'
+import type * as Plotly from 'plotly.js-dist-min'
 import { useStore } from '../store'
 
 type PlotlyLib = typeof import('plotly.js-dist-min')
@@ -11,6 +12,7 @@ export function Plot({ data, layout, height = 300, className, config }: { data: 
   const ref = useRef<HTMLDivElement>(null)
   const dark = useStore((s) => s.dark)
   const [err, setErr] = useState<string | null>(null)
+  const queue = useRef<Promise<unknown>>(Promise.resolve())
   useEffect(() => {
     let alive = true
     loadPlotly().then((P) => {
@@ -18,18 +20,25 @@ export function Plot({ data, layout, height = 300, className, config }: { data: 
       const fg = dark ? '#d4d4d4' : '#262626'
       const grid = dark ? '#2b2f36' : '#e5e7eb'
       const base: Partial<Layout> = {
-        height, margin: { l: 56, r: 16, t: 28, b: 46 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+        height, margin: { l: 56, r: 16, t: 28, b: 64 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
         font: { family: 'Inter, system-ui, sans-serif', size: 11, color: fg },
         colorway: ['#e11d48', '#0891b2', '#525252', '#f59e0b', '#7c3aed', '#16a34a', '#be185d', '#0e7490'],
-        legend: { orientation: 'h', y: -0.22, font: { size: 10 } },
+        legend: { orientation: 'h', y: -0.32, yanchor: 'top', font: { size: 10 } },
         ...layout,
       }
       for (const ax of ['xaxis', 'yaxis', 'xaxis2', 'yaxis2'] as const) {
         const a = (layout?.[ax] ?? (ax.endsWith('2') ? undefined : {})) as Record<string, unknown> | undefined
         if (a) (base as Record<string, unknown>)[ax] = { gridcolor: grid, zerolinecolor: grid, linecolor: grid, ...a }
       }
-      P.react(ref.current, data, base, { displaylogo: false, responsive: true, toImageButtonOptions: { format: 'png', scale: 2 }, modeBarButtonsToRemove: ['lasso2d', 'select2d'], ...config })
-        .catch((e: Error) => setErr(e.message))
+      const el = ref.current
+      // Plotly redraws are not re-entrant: serialise updates per plot and redraw from scratch when the trace structure changes
+      queue.current = queue.current.then(() => {
+        if (!alive || !el.isConnected) return
+        const prev = (el as unknown as { data?: { type?: string }[] }).data
+        const structural = !prev || prev.length !== data.length || prev.some((t, i) => t.type !== (data[i] as { type?: string }).type)
+        const cfg = { displaylogo: false, responsive: true, toImageButtonOptions: { format: 'png' as const, scale: 2 }, modeBarButtonsToRemove: ['lasso2d', 'select2d'] as Plotly.ModeBarDefaultButtons[], ...config }
+        return (structural ? P.newPlot(el, data, base, cfg) : P.react(el, data, base, cfg)).catch((e: Error) => setErr(e.message))
+      })
     })
     return () => { alive = false }
   }, [data, layout, height, dark, config])

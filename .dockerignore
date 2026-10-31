@@ -8,3 +8,6 @@ desktop
 e2e/screenshots
 .git
 *.db
+.env
+backups
+*.command

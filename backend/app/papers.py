@@ -9,10 +9,17 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+import sys
 import uuid
 from datetime import datetime, timezone
 
-import pymupdf
+# PyMuPDF optionally loads ONNX layout/OCR helpers (pymupdf.layout, pymupdf4llm → onnxruntime) on import.
+# It is not used here; blocking it keeps start-up fast, avoids onnxruntime telemetry and keeps the
+# packaged compute engine self-contained. PyMuPDF treats the missing module as optional (ImportError).
+for _optional in ("pymupdf.layout", "pymupdf4llm"):
+    sys.modules.setdefault(_optional, None)  # type: ignore[arg-type]
+
+import pymupdf  # noqa: E402
 
 from . import db
 
