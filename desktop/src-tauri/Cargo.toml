@@ -1,0 +1,29 @@
+[package]
+name = "synthea-simulation"
+version = "2.0.0"
+description = "Synthea Simulation — scientific food engineering workstation"
+authors = ["Synthea Simulation team"]
+edition = "2021"
+license = "UNLICENSED"
+
+[lib]
+name = "synthea_desktop"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-shell = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

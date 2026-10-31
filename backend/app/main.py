@@ -11,11 +11,31 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import assistant, db, experiments, optimize, printing, process, reports, seed
+from . import assistant, db, experiments, knowledge, optimize, printing, process, reports, routes_knowledge, routes_workspace, seed
 from .science import expression, nutrition, registry, thermal
 
-app = FastAPI(title="Synthea Simulation API", version="1.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app = FastAPI(title="Synthea Simulation API", version="2.0.0")
+_TOKEN = os.environ.get("SYNTHEA_TOKEN")
+# Browser dev server and the Tauri webview origins only.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"^(http://(localhost|127\.0\.0\.1)(:\d+)?|tauri://localhost|https?://tauri\.localhost)$",
+    allow_methods=["*"], allow_headers=["*"],
+)
+
+
+@app.middleware("http")
+async def token_guard(request: Request, call_next):
+    """In desktop mode the sidecar is started with SYNTHEA_TOKEN; every API call must present it."""
+    if _TOKEN and request.url.path.startswith("/api") and request.method != "OPTIONS":
+        supplied = request.headers.get("x-synthea-token") or request.query_params.get("token")
+        if supplied != _TOKEN:
+            return JSONResponse(status_code=401, content={"detail": "invalid or missing session token"})
+    return await call_next(request)
+
+
+app.include_router(routes_workspace.router)
+app.include_router(routes_knowledge.router)
 
 
 @app.exception_handler(ValueError)
@@ -27,6 +47,7 @@ async def value_error_handler(_: Request, exc: ValueError):
 def _startup():
     db.connect()
     seed.seed()
+    knowledge.ensure_seeded()
 
 
 def _ingredient_map() -> dict:

@@ -8,7 +8,7 @@ interface Msg { role: 'user' | 'assistant'; text: string; mode?: string; note?: 
 
 const SUGGESTIONS = ['Explain these results', 'What data is missing?', 'Explain the optimisation trade-offs', 'Suggest an experimental plan']
 
-export function Assistant() {
+export function Assistant({ embedded = false }: { embedded?: boolean }) {
   const { assistantPage, assistantContext, openAssistant } = useStore()
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [q, setQ] = useState('')
@@ -39,7 +39,7 @@ export function Assistant() {
   }
 
   return (
-    <aside className="flex w-[360px] shrink-0 flex-col border-l border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+    <aside className={embedded ? 'flex h-full min-h-0 flex-col bg-white dark:bg-neutral-900' : 'flex w-[360px] shrink-0 flex-col border-l border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900'}>
       <div className="flex items-center gap-2 border-b border-neutral-200 px-3 py-2 dark:border-neutral-800">
         <Bot className="h-4 w-4 text-accent" />
         <div className="flex-1">
@@ -48,7 +48,7 @@ export function Assistant() {
             Context: <b>{assistantPage}</b> · {status?.mode === 'claude' ? `Claude (${status.model})` : 'built-in explainer (no external AI)'}
           </div>
         </div>
-        <button onClick={() => openAssistant(false)} aria-label="Close assistant"><X className="h-4 w-4 text-neutral-500" /></button>
+        {!embedded && <button onClick={() => openAssistant(false)} aria-label="Close assistant"><X className="h-4 w-4 text-neutral-500" /></button>}
       </div>
       <div className="flex-1 space-y-3 overflow-y-auto p-3 text-xs">
         {msgs.length === 0 && (

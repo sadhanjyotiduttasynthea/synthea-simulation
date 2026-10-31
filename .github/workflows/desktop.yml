@@ -1,0 +1,41 @@
+name: Desktop build
+
+# Builds the Windows installer (NSIS .exe and MSI) with the bundled compute-engine sidecar.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+    branches: [development]
+    paths: ["desktop/**", "backend/**", "frontend/**", "scripts/build_sidecar.py", ".github/workflows/desktop.yml"]
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Python dependencies
+        run: pip install -r backend/requirements.txt pyinstaller
+      - name: Build compute-engine sidecar
+        run: python scripts/build_sidecar.py
+      - name: Frontend dependencies
+        run: npm ci
+        working-directory: frontend
+      - name: Desktop dependencies
+        run: npm ci
+        working-directory: desktop
+      - name: Build installer
+        run: npx tauri build --bundles nsis,msi
+        working-directory: desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: synthea-simulation-windows
+          path: |
+            desktop/src-tauri/target/release/bundle/nsis/*.exe
+            desktop/src-tauri/target/release/bundle/msi/*.msi

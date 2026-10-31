@@ -18,3 +18,10 @@ frontend/dist/
 .vscode/
 .idea/
 e2e/screenshots/
+
+# build outputs
+backend/build/
+desktop/src-tauri/target/
+desktop/src-tauri/gen/
+desktop/src-tauri/binaries/synthea-backend-*
+desktop/node_modules/

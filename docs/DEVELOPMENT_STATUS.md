@@ -2,7 +2,39 @@
 
 Branch: `development`
 
-## Completed milestones
+## Phase 2 — Desktop scientific workstation (in progress)
+
+| Milestone | Status |
+|---|---|
+| R1 Desktop & interface architecture | done — Tauri 2 shell, ribbon, model builder, graphics window, settings, messages |
+| R2 Global scientific library manager | in progress |
+| R3 Research-paper PDF ingestion | planned |
+| R4 AI scientific extraction & review | planned |
+| R5 Scientific model registry | planned |
+| R6 Geometry editor | planned |
+| R7 Molecular visualization | planned |
+| R8 Digital twin, solvers, results | planned |
+| R9 Desktop packaging & final integration | planned |
+
+### R1 — Desktop & interface architecture
+- COMSOL-inspired workspace: top ribbon (File, Home, Materials, Geometry, Physics, Mesh, Study, Results, AI Assistant)
+  with context tools; Model Builder tree (expand/collapse, right-click actions, live counts); central view area;
+  Settings inspector (pages publish their settings into it); bottom panel (Results, Plots, Equations with KaTeX,
+  Solver Log, Warnings, AI Assistant, Experimental Data). Panels are resizable, hideable (Ctrl+1/2/3), layout persisted.
+- Reusable engineering graphics window (Three.js/R3F): perspective/orthographic, orbit/pan/zoom, camera presets,
+  fit-to-view, grid/axes, solid/wireframe/transparent, section plane, two-point measurement, view gizmo.
+- Command bus shared by ribbon, native menus and shortcuts (F5 compute, Ctrl+S/Shift+S/O).
+- Global definitions: ordered project parameters with the safe parser + CODATA constants.
+- Tauri 2 desktop shell (`desktop/`): native menus, file dialogs (dialog/fs plugins), compute engine started as a
+  sidecar on 127.0.0.1 with a random port and per-session token (requests without token → 401), engine stopped on
+  exit, per-user data folder. PyInstaller sidecar build script; Windows installer workflow (NSIS/MSI) on
+  `windows-latest`. Linux debug build compiled and run under Xvfb in the build session (screenshot in
+  `docs/screenshots/desktop-workspace.png`).
+- Database: schema-migration table; v2 adds scientific collections and parent links without touching existing data
+  (verified on a copy of an existing database).
+
+
+## Phase 1 — Completed milestones
 - **Backend core (part of M1–M8):** FastAPI app, SQLite document store, demo seed project, scientific model library
   (nutrition mass balance, EU energy factors, Choi & Okos thermophysical properties, Herschel–Bulkley pipe flow,
   heat balance, LMTD, residence time, pump power), safe expression parser, LP optimiser with Pareto front and
