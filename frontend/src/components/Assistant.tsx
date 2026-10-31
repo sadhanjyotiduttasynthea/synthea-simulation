@@ -19,7 +19,9 @@ export function Assistant() {
   useEffect(() => {
     api.get<{ mode: string; model?: string }>('/api/assistant/status').then(setStatus).catch(() => setStatus(null))
   }, [])
-  useEffect(() => end.current?.scrollIntoView({ behavior: 'smooth' }), [msgs, busy])
+  useEffect(() => {
+    end.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [msgs, busy])
 
   const ask = async (question: string) => {
     if (!question.trim()) return

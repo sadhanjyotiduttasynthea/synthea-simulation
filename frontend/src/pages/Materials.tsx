@@ -49,7 +49,9 @@ export default function Materials() {
   useEffect(() => {
     if (!isNew) setDraft(sel ? structuredClone(sel) : null)
   }, [selId, sel?.updated_at])  // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => setAssistant('materials', { ingredient: draft }), [draft, setAssistant])
+  useEffect(() => {
+    setAssistant('materials', { ingredient: draft })
+  }, [draft, setAssistant])
 
   const filtered = useMemo(
     () => ingredients.filter((i) => (!cat || i.category === cat) && (i.name.toLowerCase().includes(q.toLowerCase()) || i.category.toLowerCase().includes(q.toLowerCase()))),
@@ -116,7 +118,7 @@ export default function Materials() {
   }
 
   const numGrid = (section: 'nutrition' | 'physical' | 'rheology' | 'thermal', defs: NumFieldDef[]) => (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-2 lg:grid-cols-3">
+    <div className="grid grid-cols-2 gap-x-3 gap-y-2 @3xl:grid-cols-3">
       {defs.map(([k, label, unit]) => (
         <Field key={k} label={`${label} [${unit}]`}>
           <NumInput value={(draft![section] as Record<string, number | null>)[k] ?? null} onChange={(v) => set([section, k], v)} placeholder="missing" />
@@ -150,7 +152,7 @@ export default function Materials() {
           </>
         }
       />
-      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.6fr)]">
+      <div className="grid min-h-0 flex-1 gap-3 @3xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1.6fr)]">
         <Panel title={`Ingredients (${filtered.length})`} bodyClass="p-0" className="flex min-h-0 flex-col">
           <div className="flex gap-2 border-b border-neutral-200 p-2 dark:border-neutral-800">
             <div className="relative flex-1">

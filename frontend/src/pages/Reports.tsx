@@ -31,7 +31,9 @@ export default function Reports() {
   useEffect(() => {
     if (active) api.post<CompositionResult>('/api/formulations/evaluate', { lines: active.lines, serving_size_g: project?.settings.serving_size_g ?? 30 }).then(setEvalRes)
   }, [active, project?.settings.serving_size_g])
-  useEffect(() => setAssistant('reports', { result: evalRes }), [evalRes, setAssistant])
+  useEffect(() => {
+    setAssistant('reports', { result: evalRes })
+  }, [evalRes, setAssistant])
 
   const available: Record<SectionId, boolean> = {
     formulation: !!evalRes, optimization: !!results.optimization, process: !!results.process, print: !!results.print,

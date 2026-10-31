@@ -111,8 +111,12 @@ function ProcessInner() {
       if (fs[0]) loadFlow(fs[0])
     })
   }, [project?.id])  // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => setFormId(active?.id), [active?.id])
-  useEffect(() => setAssistant('process', { process: sim }), [sim, setAssistant])
+  useEffect(() => {
+    setFormId(active?.id)
+  }, [active?.id])
+  useEffect(() => {
+    setAssistant('process', { process: sim })
+  }, [sim, setAssistant])
 
   const onConnect = useCallback((c: Connection) => setEdges((es) => addEdge({ ...c, animated: true }, es)), [setEdges])
 
@@ -204,9 +208,9 @@ function ProcessInner() {
           <Button variant="primary" onClick={run} loading={busy}><Play className="h-3.5 w-3.5" />Run simulation</Button>
         </>}
       />
-      <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[200px_minmax(0,1fr)_310px]">
-        <div className="min-h-0 space-y-3 overflow-y-auto">
-          <Panel title="Equipment library" bodyClass="p-1.5 grid grid-cols-2 gap-1 xl:grid-cols-1">
+      <div className="grid gap-3 @5xl:min-h-0 @5xl:flex-1 @5xl:grid-cols-[200px_minmax(0,1fr)_310px]">
+        <div className="space-y-3 @5xl:min-h-0 @5xl:overflow-y-auto">
+          <Panel title="Equipment library" bodyClass="p-1.5 grid grid-cols-2 gap-1 @5xl:grid-cols-1">
             {Object.entries(library).map(([kind, l]) => {
               const Icon = ICONS[kind] ?? Cog
               return (
@@ -232,7 +236,7 @@ function ProcessInner() {
           </Panel>
         </div>
 
-        <div className="flex min-h-0 flex-col gap-3 overflow-y-auto">
+        <div className="@container flex flex-col gap-3 @5xl:min-h-0 @5xl:overflow-y-auto">
           <div className="h-[420px] shrink-0 overflow-hidden rounded border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900" onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }} onDrop={onDrop}>
             <ReactFlow
               nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect}
@@ -248,13 +252,13 @@ function ProcessInner() {
           {busy && <Spinner label="Solving mass and energy balances…" />}
           {sim && s && (
             <>
-              <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 @@5xl:grid-cols-4">
                 <Stat label="Feed → product" value={`${fmt(s.feed_kg_h as number, 1)} → ${fmt(s.product_kg_h as number, 1)}`} unit="kg/h" sub={`evaporated ${fmt(s.evaporated_kg_h as number, 2)} kg/h`} prov="calculated" />
                 <Stat label="Total electrical power" value={fmt(s.total_power_kw as number, 2)} unit="kW" />
                 <Stat label="Specific energy" value={fmt(s.specific_energy_kwh_per_kg_product as number, 3)} unit="kWh/kg" />
                 <Stat label="Operating cost" value={eur(s.operating_cost_eur_per_kg_product as number, 3)} unit="/kg product" sub={`energy ${eur(s.energy_cost_eur_h as number)}/h · material ${eur(s.material_cost_eur_h as number)}/h`} tone="red" />
               </div>
-              <div className="grid gap-3 lg:grid-cols-2">
+              <div className="grid gap-3 @3xl:grid-cols-2">
                 <Panel title="Temperature and mass flow along the line">
                   <div className="h-52">
                     <ResponsiveContainer>
@@ -311,7 +315,7 @@ function ProcessInner() {
           )}
         </div>
 
-        <div className="min-h-0 space-y-3 overflow-y-auto">
+        <div className="space-y-3 @5xl:min-h-0 @5xl:overflow-y-auto">
           {sel ? (
             <>
               <Panel title="Unit properties" actions={<Button size="sm" variant="danger" onClick={() => { setNodes((ns) => ns.filter((n) => n.id !== sel.id)); setEdges((es) => es.filter((e) => e.source !== sel.id && e.target !== sel.id)); setSelected(null) }}><Trash2 className="h-3.5 w-3.5" />Remove</Button>}>

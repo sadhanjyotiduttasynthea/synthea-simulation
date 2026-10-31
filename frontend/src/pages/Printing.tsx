@@ -56,8 +56,12 @@ export default function Printing() {
   const simTime = useRef(0)
   const form = formulations.find((f) => f.id === formId) ?? active
 
-  useEffect(() => setFormId(active?.id), [active?.id])
-  useEffect(() => setAssistant('printing', { print: res ? { ...res, path: undefined, layers: undefined } : null }), [res, setAssistant])
+  useEffect(() => {
+    setFormId(active?.id)
+  }, [active?.id])
+  useEffect(() => {
+    setAssistant('printing', { print: res ? { ...res, path: undefined, layers: undefined } : null })
+  }, [res, setAssistant])
 
   const generate = async (params = p) => {
     setBusy(true)
@@ -119,8 +123,8 @@ export default function Printing() {
           <Button variant="primary" onClick={() => generate()} loading={busy}><Wand2 className="h-3.5 w-3.5" />Generate toolpath</Button>
         </>}
       />
-      <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[250px_minmax(0,1fr)_300px]">
-        <div className="min-h-0 space-y-3 overflow-y-auto">
+      <div className="grid gap-3 @5xl:min-h-0 @5xl:flex-1 @5xl:grid-cols-[250px_minmax(0,1fr)_300px]">
+        <div className="space-y-3 @5xl:min-h-0 @5xl:overflow-y-auto">
           <Panel title="Material">
             <Field label="Formulation"><Select value={form?.id ?? ''} onChange={(e) => setFormId(e.target.value)}>{formulations.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</Select></Field>
             <div className="mt-2 text-[11px]">Rheology: {form?.rheology && form.rheology.yield_stress_pa !== null ? <><Prov kind={form.rheology.data_type} /> τ₀ {form.rheology.yield_stress_pa} Pa · K {form.rheology.consistency_index_pa_sn} · n {form.rheology.flow_behaviour_index}</> : <Prov kind="missing" />}</div>
@@ -148,7 +152,7 @@ export default function Printing() {
           </Panel>
         </div>
 
-        <div className="flex min-h-0 flex-col gap-2">
+        <div className="flex flex-col gap-2 @5xl:min-h-0">
           <div className="relative min-h-[380px] flex-1 overflow-hidden rounded border border-neutral-200 bg-gradient-to-b from-neutral-100 to-neutral-200 dark:border-neutral-800 dark:from-neutral-900 dark:to-neutral-950">
             <Canvas camera={{ position: [5, 4.2, 6.2], fov: 40 }} dpr={[1, 2]}>
               <color attach="background" args={[dark ? '#111111' : '#f1f1f1']} />
@@ -171,7 +175,7 @@ export default function Printing() {
           </div>
         </div>
 
-        <div className="min-h-0 space-y-3 overflow-y-auto">
+        <div className="space-y-3 @5xl:min-h-0 @5xl:overflow-y-auto">
           <Panel title="Printer parameters">
             <div className="grid grid-cols-2 gap-2">
               <Field label="Nozzle Ø [mm]"><NumInput value={p.nozzle_diameter_mm} allowNull={false} onChange={(v) => num('nozzle_diameter_mm', v)} /></Field>

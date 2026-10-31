@@ -106,7 +106,7 @@ export default function Dashboard() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 @@5xl:grid-cols-3 @5xl:grid-cols-6">
         <Stat label="Active formulation" value={<span className="text-sm">{active?.name ?? '—'}</span>} sub={`${formulations.length} formulation(s)`} />
         <Stat label="Protein" value={fmt(result?.composition.protein)} unit="%" prov="calculated" />
         <Stat label="Raw-material cost" value={eur(result?.cost_per_kg, 3)} unit="/kg" prov="calculated" sub="from illustrative prices" />
@@ -115,8 +115,8 @@ export default function Dashboard() {
         <Stat label="Projects" value={projects.length} sub={`${ingredients.length} ingredients in library`} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Panel title="Hackathon demonstration walkthrough" className="lg:col-span-2">
+      <div className="grid gap-4 @3xl:grid-cols-3">
+        <Panel title="Hackathon demonstration walkthrough" className="@3xl:col-span-2">
           <ol className="space-y-1">
             {steps.map((s, i) => (
               <li key={i}>
@@ -147,7 +147,7 @@ export default function Dashboard() {
         </Panel>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 @@5xl:grid-cols-2 @5xl:grid-cols-4">
         {MODULES.map(({ to, icon: Icon, title, text }) => (
           <button key={to} onClick={() => nav(to)} className="group rounded border border-neutral-200 bg-white p-4 text-left transition hover:border-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-400">
             <Icon className="h-5 w-5 text-accent" />
@@ -157,7 +157,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 @3xl:grid-cols-2">
         <Panel title="Formulations in this project" actions={<Button size="sm" onClick={() => nav('/formulation')}><Beaker className="h-3.5 w-3.5" />Open studio</Button>}>
           {formulations.length === 0 ? <p className="text-xs text-neutral-500">No formulations yet.</p> : (
             <table className="w-full text-xs">

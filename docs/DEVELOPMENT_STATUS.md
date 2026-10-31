@@ -51,14 +51,41 @@ Branch: `development`
   scientific model registry (equations, parameters, units, assumptions, applicability, validation, live compute),
   safe custom-equation evaluator, AI configuration and data reset.
 
-## In progress
-- M9 experiments UI, M6 process simulator, M7 3D printing lab, M8 assistant/reports UI.
+- **M9 – Testing, debugging, documentation, demo:** Playwright end-to-end script covering all 14 demo steps plus
+  infeasibility and assistant checks (16/16 passing, 0 browser errors, both dev and single-port production mode);
+  fixed a React effect-cleanup crash (Chromium `scrollIntoView` returns a Promise), container-query responsive
+  layouts (three-panel layouts stack when the assistant drawer is open), README, scientific model documentation,
+  run scripts (`scripts/dev.sh`, `scripts/serve.sh`) and screenshots.
 
-## Outstanding
-- Frontend modules, CI workflow, documentation, end-to-end demo verification.
+## Current functionality
+All nine sections (Dashboard, Materials Library, Formulation Studio, AI Optimizer, Process Simulator, 3D Printing Lab,
+Experiments, Reports, Settings) are implemented and connected; the *Affordable Pea Protein Snack* demo runs end to end
+without paid services.
 
-## Known issues
-- None recorded yet.
+## Test status
+- Backend: `pytest` — 33 tests (mass balance, energy, Choi–Okos, HB vs analytic Newtonian/power-law/Bingham limits,
+  expression-parser security, LP optimality vs random search, Pareto ordering, infeasibility diagnosis, allergen
+  exclusion, GP processing mode, DoE/active learning, cost scenario, process mass/energy balance, toolpaths for all
+  shapes, API CRUD/import/export/report).
+- Frontend: `tsc -b` clean, `vitest` 8 tests (rebalancing/locking), production build succeeds.
+- End-to-end: `node e2e/demo-walkthrough.mjs` — 16/16 checks.
+- CI: `.github/workflows/ci.yml` runs backend and frontend jobs on push/PR to `main`/`development`.
+  (CI run status could not be checked from the build session because the GitHub CLI token was invalid; verify in the
+  repository's Actions tab.)
+
+## Outstanding / possible next steps
+- Replace illustrative ingredient compositions and prices with supplier certificates of analysis and quotations.
+- Record measured flow curves (τ₀, K, n) for candidate formulations to enable pressure-drop and nozzle predictions.
+- Replace synthetic demo experiments with real laboratory data; the GP workflow is ready for it.
+- Optional: user authentication and multi-user projects; PostgreSQL deployment; residence-time distribution models;
+  temperature-dependent rheology; die-swell/sagging models for printing once validated data exist.
+- Optional: run Playwright E2E in CI (requires browser installation in the workflow).
+
+## Known issues / limitations
+- Results shown in Reports are the latest runs cached in the browser (localStorage) per project.
+- Polygon inset for imported concave outlines uses a miter offset that is approximate for sharp concave corners.
+- Large toolpaths (very large objects with dense infill) increase animation memory; typical food-scale prints are fine.
+- Mixer temperature rise assumes all shaft power is dissipated as heat (upper bound).
 
 ## Latest verified commit
-- (updated after push)
+- See the end of this file (updated after each push).

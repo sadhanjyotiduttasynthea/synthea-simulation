@@ -29,7 +29,9 @@ export default function Formulation() {
   useEffect(() => {
     if (saved && saved.id !== draft?.id) setDraft(structuredClone(saved))
   }, [saved?.id])  // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => setAssistant('formulation', { result, formulation: draft?.name }), [result, draft?.name, setAssistant])
+  useEffect(() => {
+    setAssistant('formulation', { result, formulation: draft?.name })
+  }, [result, draft?.name, setAssistant])
 
   const dirty = !!draft && JSON.stringify(draft) !== JSON.stringify(saved)
   const sum = draft ? total(draft.lines) : 0
@@ -95,9 +97,9 @@ export default function Formulation() {
           </>
         }
       />
-      <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[230px_minmax(0,1fr)_320px]">
+      <div className="grid gap-3 @5xl:min-h-0 @5xl:flex-1 @5xl:grid-cols-[230px_minmax(0,1fr)_320px]">
         {/* LEFT */}
-        <div className="flex min-h-0 flex-col gap-3">
+        <div className="flex flex-col gap-3 @5xl:min-h-0">
           <Panel title="Formulations" bodyClass="p-1 max-h-56 overflow-auto">
             {formulations.map((f) => (
               <button key={f.id} onClick={() => { setSelId(f.id); setDraft(structuredClone(f)) }} className={cx('flex w-full items-center gap-1 rounded px-2 py-1 text-left text-xs', f.id === draft?.id ? 'bg-neutral-900 text-white dark:bg-neutral-700' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800')}>
@@ -129,7 +131,7 @@ export default function Formulation() {
         </div>
 
         {/* CENTER */}
-        <div className="min-h-0 space-y-3 overflow-y-auto">
+        <div className="@container space-y-3 @5xl:min-h-0 @5xl:overflow-y-auto">
           {!draft ? <Panel><p className="text-xs text-neutral-500">Create or select a formulation.</p></Panel> : (
             <>
               <Panel
@@ -172,7 +174,7 @@ export default function Formulation() {
                 {msg && <div className="mt-2"><Alert kind="warn">{msg}</Alert></div>}
                 <p className="mt-2 text-[10px] text-neutral-400">Editing one ingredient rebalances the unlocked ingredients proportionally so the total stays at 100 %. Locked ingredients are never changed.</p>
               </Panel>
-              <div className="grid gap-3 lg:grid-cols-2">
+              <div className="grid gap-3 @3xl:grid-cols-2">
                 <Panel title="Ingredient composition (mass %)">
                   <div className="h-56">
                     <ResponsiveContainer>
@@ -201,7 +203,7 @@ export default function Formulation() {
                     </ResponsiveContainer>
                   </div>
                 </Panel>
-                <Panel title="Cost breakdown (€/kg contribution)" className="lg:col-span-2">
+                <Panel title="Cost breakdown (€/kg contribution)" className="@3xl:col-span-2">
                   <div className="h-48">
                     <ResponsiveContainer>
                       <BarChart data={costData}>
@@ -220,7 +222,7 @@ export default function Formulation() {
         </div>
 
         {/* RIGHT */}
-        <div className="min-h-0 space-y-3 overflow-y-auto">
+        <div className="space-y-3 @5xl:min-h-0 @5xl:overflow-y-auto">
           <Panel title="Results" actions={loading ? <Spinner label="" /> : <Prov kind="calculated" />}>
             {error && <Alert kind="error">{error}</Alert>}
             {result && <ResultsBlock r={result} serving={serving} />}

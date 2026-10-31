@@ -29,7 +29,9 @@ export default function Experiments() {
     setLoading(false)
   }, [project])
   useEffect(() => { load() }, [load])
-  useEffect(() => setAssistant('experiments', { n_experiments: exps.length, data_types: [...new Set(exps.map((e) => e.data_type))] }), [exps, setAssistant])
+  useEffect(() => {
+    setAssistant('experiments', { n_experiments: exps.length, data_types: [...new Set(exps.map((e) => e.data_type))] })
+  }, [exps, setAssistant])
 
   return (
     <div className="space-y-3">
@@ -142,7 +144,7 @@ function Records({ exps, reload, loading }: { exps: Experiment[]; reload: () => 
       )}
       <Modal open={!!edit} onClose={() => setEdit(null)} title={edit?.id ? `Edit ${edit.name}` : 'Record experiment'} wide footer={<><Button onClick={() => setEdit(null)}>Cancel</Button><Button variant="primary" onClick={save}>Save</Button></>}>
         {edit && (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 @@5xl:grid-cols-2">
             <div className="space-y-2">
               <div className="grid grid-cols-2 gap-2">
                 <Field label="Name"><Input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} placeholder="EXP-01" /></Field>
@@ -200,7 +202,9 @@ function Planning({ exps, reload }: { exps: Experiment[]; reload: () => Promise<
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const nResp = exps.filter((e) => e.measurements[response] !== null && e.measurements[response] !== undefined).length
-  useEffect(() => setAssistant('experiments', { recommendation: rec ? { ...rec, cv: rec.cv ? { q2: rec.cv.q2 } : undefined } : null }), [rec, setAssistant])
+  useEffect(() => {
+    setAssistant('experiments', { recommendation: rec ? { ...rec, cv: rec.cv ? { q2: rec.cv.q2 } : undefined } : null })
+  }, [rec, setAssistant])
 
   const run = async () => {
     setBusy(true)
@@ -226,7 +230,7 @@ function Planning({ exps, reload }: { exps: Experiment[]; reload: () => Promise<
   const lim = parity.length ? [Math.min(...parity.flatMap((p) => [p.observed, p.predicted])), Math.max(...parity.flatMap((p) => [p.observed, p.predicted]))] : [0, 1]
 
   return (
-    <div className="grid gap-3 xl:grid-cols-[280px_minmax(0,1fr)]">
+    <div className="grid gap-3 @5xl:grid-cols-[280px_minmax(0,1fr)]">
       <div className="space-y-3">
         <Panel title="Planning settings">
           <div className="space-y-2">
@@ -275,7 +279,7 @@ function Planning({ exps, reload }: { exps: Experiment[]; reload: () => Promise<
               </div>
             </Panel>
             {rec.cv && (
-              <div className="grid gap-3 lg:grid-cols-2">
+              <div className="grid gap-3 @3xl:grid-cols-2">
                 <Panel title={`Surrogate validation (leave-one-out${rec.cv.space === 'log' ? ', log axes' : ''})`} actions={<>{rec.model?.data_types.map((d) => <Prov key={d} kind={d} />)}</>}>
                   <div className="h-56">
                     <ResponsiveContainer>
@@ -327,14 +331,16 @@ function CostCalc() {
     }, 150)
     return () => clearTimeout(t)
   }, [p])  // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => setAssistant('experiments', { cost_scenario: r ? { ...r, sensitivity: undefined } : null }), [r, setAssistant])
+  useEffect(() => {
+    setAssistant('experiments', { cost_scenario: r ? { ...r, sensitivity: undefined } : null })
+  }, [r, setAssistant])
   const n = (k: string) => (r?.[k] as number | null) ?? null
   const fields: [keyof typeof DEFAULT_SCENARIO, string][] = [
     ['conventional_experiments', 'Conventional experiments [–]'], ['planned_experiments', 'AI-assisted planned experiments [–]'], ['cost_per_experiment', 'Cost per experiment [€]'],
     ['material_per_experiment_kg', 'Material per experiment [kg]'], ['software_modelling_cost', 'Software & modelling cost [€]'], ['days_per_experiment', 'Lab time per experiment [days]'], ['material_cost_per_kg', 'Material value [€/kg] (info)'],
   ]
   return (
-    <div className="grid gap-3 xl:grid-cols-[300px_minmax(0,1fr)]">
+    <div className="grid gap-3 @5xl:grid-cols-[300px_minmax(0,1fr)]">
       <Panel title="Scenario inputs" actions={<Prov kind="illustrative" />}>
         <div className="space-y-2">
           {fields.map(([k, l]) => <Field key={k} label={l}><NumInput value={p[k]} allowNull={false} onChange={(v) => setP({ ...p, [k]: v ?? 0 })} /></Field>)}
@@ -343,7 +349,7 @@ function CostCalc() {
         </div>
       </Panel>
       <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 @@5xl:grid-cols-4">
           <Stat label="Conventional cost" value={eur(n('conventional_cost'), 0)} />
           <Stat label="Planned cost" value={eur(n('planned_cost'), 0)} />
           <Stat label="Gross avoided" value={eur(n('gross_avoided'), 0)} />
@@ -353,7 +359,7 @@ function CostCalc() {
           <Stat label="Lab time" value={`${fmt(n('conventional_days'), 0)} → ${fmt(n('planned_days'), 0)}`} unit="days" />
           <Stat label="Break-even" value={fmt(n('break_even_experiments_avoided'), 1)} unit="exp. avoided" sub="to recover software cost" />
         </div>
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid gap-3 @3xl:grid-cols-2">
           <Panel title="Conventional vs planned">
             <div className="h-56">
               <ResponsiveContainer>

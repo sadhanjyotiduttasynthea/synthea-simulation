@@ -32,8 +32,12 @@ export default function Optimizer() {
   const [err, setErr] = useState<string | null>(null)
   const [sel, setSel] = useState(0)
 
-  useEffect(() => setOpt(structuredClone(project!.optimizer)), [project?.id])  // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => setAssistant('optimizer', { optimisation: res ? { ...res, pareto: undefined } : null }), [res, setAssistant])
+  useEffect(() => {
+    setOpt(structuredClone(project!.optimizer))
+  }, [project?.id])  // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    setAssistant('optimizer', { optimisation: res ? { ...res, pareto: undefined } : null })
+  }, [res, setAssistant])
 
   const included = opt.ingredient_ids ?? Object.keys(opt.bounds)
   const allergens = useMemo(() => [...new Set(ingredients.flatMap((i) => i.allergens))], [ingredients])
@@ -117,9 +121,9 @@ export default function Optimizer() {
           <Button variant="primary" onClick={run} loading={busy}><Play className="h-3.5 w-3.5" />Run optimiser</Button>
         </>}
       />
-      <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[300px_minmax(0,1fr)_330px]">
+      <div className="grid gap-3 @5xl:min-h-0 @5xl:flex-1 @5xl:grid-cols-[300px_minmax(0,1fr)_330px]">
         {/* LEFT: constraints */}
-        <div className="min-h-0 space-y-3 overflow-y-auto">
+        <div className="space-y-3 @5xl:min-h-0 @5xl:overflow-y-auto">
           <Panel title="Objective">
             <Select value={mode} onChange={(e) => setMode(e.target.value)}>{MODES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Select>
           </Panel>
@@ -184,14 +188,14 @@ export default function Optimizer() {
         </div>
 
         {/* CENTER */}
-        <div className="min-h-0 space-y-3 overflow-y-auto">
+        <div className="@container space-y-3 @5xl:min-h-0 @5xl:overflow-y-auto">
           {err && <Alert kind="error" title="Optimisation failed">{err}</Alert>}
           {busy && <Panel><Spinner label="Solving linear programmes and Pareto front…" /></Panel>}
           {!res && !busy && <Panel><p className="py-8 text-center text-sm text-neutral-500">Set constraints and press <b>Run optimiser</b>. Demo: min protein 15 %, max cost €2.20/kg.</p></Panel>}
           {res?.status === 'infeasible' && <Infeasible res={res} />}
           {res && cands.length > 0 && (
             <>
-              <div className={cx('grid gap-2', cands.length >= 3 ? 'lg:grid-cols-3' : cands.length === 2 ? 'lg:grid-cols-2' : '')}>
+              <div className={cx('grid gap-2', cands.length >= 3 ? '@xl:grid-cols-3' : cands.length === 2 ? '@xl:grid-cols-2' : '')}>
                 {cands.map((c, i) => (
                   <button key={i} onClick={() => setSel(i)} className={cx('rounded border bg-white p-3 text-left dark:bg-neutral-900', i === sel ? 'border-accent ring-1 ring-accent' : 'border-neutral-200 hover:border-neutral-400 dark:border-neutral-800')}>
                     <div className="flex items-center justify-between"><span className="text-xs font-semibold uppercase tracking-wide">{c.label}</span>
@@ -211,7 +215,7 @@ export default function Optimizer() {
                   </button>
                 ))}
               </div>
-              <div className="grid gap-3 lg:grid-cols-2">
+              <div className="grid gap-3 @3xl:grid-cols-2">
                 <Panel title="Pareto front: protein vs cost" subtitle="ε-constraint method (minimum cost at each protein level)">
                   <Pareto res={res} />
                 </Panel>
@@ -228,7 +232,7 @@ export default function Optimizer() {
         </div>
 
         {/* RIGHT */}
-        <div className="min-h-0 space-y-3 overflow-y-auto">
+        <div className="space-y-3 @5xl:min-h-0 @5xl:overflow-y-auto">
           {cur?.formulation && (
             <Panel title={`Selected: ${cur.label}`}>
               <p className="mb-2 text-xs text-neutral-600 dark:text-neutral-400">{cur.rationale}</p>

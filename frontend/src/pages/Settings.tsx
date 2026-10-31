@@ -29,9 +29,11 @@ export default function Settings() {
 function General() {
   const { project, saveProject, dark, setDark, toast } = useStore()
   const [p, setP] = useState(project!)
-  useEffect(() => setP(project!), [project])
+  useEffect(() => {
+    setP(project!)
+  }, [project])
   return (
-    <div className="grid gap-3 md:grid-cols-2">
+    <div className="grid gap-3 @@5xl:grid-cols-2">
       <Panel title="Project">
         <div className="space-y-2">
           <Field label="Name"><Input value={p.name} onChange={(e) => setP({ ...p, name: e.target.value })} /></Field>
@@ -73,7 +75,7 @@ function Models() {
     <div className="space-y-3">
       {models.map((m) => (
         <Panel key={m.id} title={m.name} actions={<Badge tone={tone(m.validation)}>{m.validation}</Badge>}>
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+          <div className="grid gap-4 @3xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
             <div className="space-y-2 text-xs">
               <div className="rounded bg-neutral-50 px-2 py-1.5 font-mono text-[12px] dark:bg-neutral-800">{m.equation}</div>
               <table className="w-full"><thead><tr className="text-left text-[10px] uppercase text-neutral-500"><th>Symbol</th><th>Description</th><th>Unit</th></tr></thead>
@@ -112,7 +114,7 @@ function Equations() {
     if (r?.variables) setVars((v) => Object.fromEntries(r.variables!.map((k) => [k, v[k] ?? 0])))
   }
   return (
-    <div className="grid gap-3 md:grid-cols-2">
+    <div className="grid gap-3 @@5xl:grid-cols-2">
       <Panel title="User-defined equation">
         <div className="space-y-2">
           <Field label="Expression" hint="Allowed: + − × ÷ ** %, parentheses, sqrt exp log log10 sin cos tan tanh abs min max pow, constants pi e. No code execution."><Input className="w-full font-mono" value={expr} onChange={(e) => setExpr(e.target.value)} /></Field>

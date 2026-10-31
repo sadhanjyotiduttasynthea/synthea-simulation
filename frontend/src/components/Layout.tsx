@@ -83,7 +83,7 @@ export function Layout({ children }: { children: ReactNode }) {
           </button>
         </header>
         <div className="flex min-h-0 flex-1">
-          <main className="min-w-0 flex-1 overflow-y-auto p-4">{children}</main>
+          <main className="@container min-w-0 flex-1 overflow-y-auto p-4">{children}</main>
           {assistantOpen && <Assistant />}
         </div>
       </div>
