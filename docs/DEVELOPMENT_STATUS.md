@@ -1,6 +1,6 @@
 # Synthea Simulation — Development Status
 
-Branch: `development`
+Branch: `development` (R7/R8 work on branch `ali` — see `docs/DESIGN_DECISIONS_ALI.md`)
 
 ## Phase 2 — Desktop scientific workstation (in progress)
 
@@ -12,9 +12,34 @@ Branch: `development`
 | R4 AI scientific extraction & review | done |
 | R5 Scientific model registry | planned |
 | R6 Geometry editor | planned |
-| R7 Molecular visualization | planned |
-| R8 Digital twin, solvers, results | planned |
+| R7 Molecular visualization | done (branch `ali`) |
+| R8 Digital twin, solvers, results | done (branch `ali`) — 2-D solvers |
 | R9 Desktop packaging & final integration | planned |
+
+### R8 — Digital twin, solvers, results (branch `ali`)
+- Twin = 2-D cross-section (parametric shapes or custom polygon, editable dimensions, depth) + library material +
+  physics + mesh + operating conditions. Boundary conditions per geometry edge with a default.
+- Solvers (NumPy/SciPy sparse): transient/steady heat conduction with optional first-order Arrhenius kinetics;
+  fully developed generalised-Newtonian duct flow (Newtonian / power law / Herschel–Bulkley, prescribed flow rate or
+  pressure gradient); plane stress/strain Q4 linear elasticity (gravity, pressure, fixed, roller); mass diffusion.
+- Inputs only from approved library records / registry models (traceable to paper and page); manual and Choi–Okos
+  values explicit and flagged; missing data refuses to run.
+- Background jobs with progress, cancel and solver log; stored studies (snapshot, inputs with sources, mesh, results).
+- 3-D results: extruded field with legend, time animation, deformed shape, plug overlay, centre-line and history plots.
+- Paper summaries (local verbatim key statements with pages; optional Claude) on the Research Papers page.
+- Demo twins built through the paper pipeline on the SYNTHETIC test document.
+- Tests: analytic verification (Fourier series, Hagen–Poiseuille, power-law and HB pipe flow, uniaxial compression),
+  paper → library → twin workflow, demo twins.
+
+### R7 — Molecular structures (branch `ali`)
+- Small molecules from SMILES / MOL / SDF (RDKit ETKDG v3 + MMFF94), food starter set; peptides/proteins from
+  sequence, PDB files, RCSB PDB or AlphaFold DB downloads (licence recorded).
+- Computed properties: molar mass, logP, TPSA, vdW volume, pI (root of the charge equation), charge vs pH, ε280,
+  GRAVY, FAO 2013 amino-acid score, hydrodynamic radius and Stokes–Einstein diffusion (Vogel water viscosity).
+- Computed values become library records (evidence "computed from structure") linked to materials → used by twins.
+- Interaction scenes: MMFF94 interaction energy + H-bonds for small-molecule pairs; protein scenes labelled conceptual.
+- Viewer: ball & stick, sticks, space-filling, backbone tube (secondary structure / chain / hydropathy / pLDDT).
+- Database schema migration 3 (molecules); shared SQLite connection now locked for reads as well as writes.
 
 ### R1 — Desktop & interface architecture
 - COMSOL-inspired workspace: top ribbon (File, Home, Materials, Geometry, Physics, Mesh, Study, Results, AI Assistant)
@@ -152,7 +177,9 @@ without paid services.
   exclusion, GP processing mode, DoE/active learning, cost scenario, process mass/energy balance, toolpaths for all
   shapes, API CRUD/import/export/report).
 - Frontend: `tsc -b` clean, `vitest` 8 tests (rebalancing/locking), production build succeeds.
-- End-to-end: `node e2e/demo-walkthrough.mjs` — 16/16 checks.
+- End-to-end: `node e2e/demo-walkthrough.mjs` — 16/16 checks at Milestone 9 (needs updating for the R1 layout: it waits
+  for a `<main>` element). Branch `ali`: `node e2e/twin-molecules-smoke.mjs` — 6/6 checks.
+- Branch `ali`: `pytest` — 59 tests (incl. twin solver verification, molecules, DB concurrency).
 - CI: `.github/workflows/ci.yml` runs backend and frontend jobs on push/PR to `main`/`development`.
   (CI run status could not be checked from the build session because the GitHub CLI token was invalid; verify in the
   repository's Actions tab.)

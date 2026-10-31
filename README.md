@@ -22,6 +22,13 @@ labelled as *measured*, *literature*, *calculated*, *predicted*, *illustrative*,
 | **Synthea Process** — *Process Simulator* | Drag-and-drop pilot line (storage, mixer, heater, cooler, pump, pipe, extruder, conveyor, packaging) with mass and energy balances, residence times, heat duties, pump power, pressure drop, throughput and operating cost. | Steady-state lumped flowsheet; Choi & Okos cp/ρ; Herschel–Bulkley laminar flow (Rabinowitsch–Mooney) when rheology is measured |
 | **Synthea Print** — *3D Printing Lab* | Virtual food printer with real toolpath generation (perimeters + ±45° rectilinear infill), animated printhead and layer-by-layer deposition, print time, toolpath length, material use, layer count, required flow, nozzle pressure when rheology is known. | Polygon offset + scan-line fill; bead geometry Q = w·h·v; HB capillary flow |
 
+**Digital twin (branch `ali`)** — 2-D cross-section models (any shape, editable) solved with NumPy/SciPy: heat transfer
+with protein-denaturation kinetics, Herschel–Bulkley duct flow, solid mechanics and diffusion, with 3-D result views.
+Every material input comes from approved library records extracted from your papers.
+**Molecular structures (branch `ali`)** — any small molecule (SMILES/MOL/SDF), peptides and proteins (sequence, PDB,
+AlphaFold); computed properties (pI, charge, diffusion, amino-acid score, …) feed the libraries and twins; force-field
+interaction scenes. See [`docs/DESIGN_DECISIONS_ALI.md`](docs/DESIGN_DECISIONS_ALI.md).
+
 There is also a **scientific assistant** on every page. It works without any external API using a built-in
 deterministic explainer. A server-side Claude integration is optional. The assistant never generates numbers; it only
 explains numbers produced by the engine. In addition there are **PDF / JSON / CSV reports**, a **scientific model
@@ -115,6 +122,10 @@ backend/                    FastAPI + NumPy/SciPy/scikit-learn + SQLite
   app/printing.py           toolpath generator and extrusion calculations
   app/assistant.py          deterministic explainer + optional Claude integration
   app/reports.py            PDF report (ReportLab)
+  app/twin/                 digital twin: geometry + mesh, 2-D solvers, property resolution, demo twins
+  app/jobs.py               background computation jobs (progress, log, cancel)
+  app/molecules.py          RDKit conformers, protein calculations, PDB parsing, interaction energies
+  app/paper_summary.py      extractive (and optional Claude) paper summaries
   tests/                    pytest (science, optimiser, API)
 frontend/                   React 19 + TypeScript + Vite + Tailwind v4
   src/pages/                Dashboard, Materials, Formulation, Optimizer, Process (React Flow),
@@ -141,9 +152,18 @@ npx vite build
 
 ```bash
 node e2e/demo-walkthrough.mjs   # needs the running app and Playwright
+node e2e/twin-molecules-smoke.mjs
 ```
 
 ## Screenshots
+
+| Digital twin — heat + denaturation | Digital twin — Herschel–Bulkley die flow |
+|---|---|
+| ![](docs/screenshots/twin-heat.png) | ![](docs/screenshots/twin-flow.png) |
+
+| Molecular structures | Interaction scene |
+|---|---|
+| ![](docs/screenshots/molecules-peptide.png) | ![](docs/screenshots/molecules-interaction.png) |
 
 | Formulation Studio | Process Simulator |
 |---|---|

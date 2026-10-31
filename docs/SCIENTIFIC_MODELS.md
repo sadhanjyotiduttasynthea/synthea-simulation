@@ -104,3 +104,31 @@ User equations are parsed with Python's `ast` module and evaluated by a whitelis
 variables, + − × ÷ ** %, unary ±, `sqrt exp log log10 sin cos tan tanh abs min max pow`, and the constants `pi` and
 `e`. Attribute access, subscripts, comprehensions, lambdas and other calls are rejected, and large exponents and
 overflow are guarded.
+
+## Digital twin solvers (branch `ali`, `backend/app/twin/`)
+
+All solvers use a uniform square grid of size *h* restricted to the cross-section (staircase boundary; the area error is
+reported). Fields are 2-D and uniform along the depth.
+
+| Physics | Equation | Discretisation | Verification |
+|---|---|---|---|
+| Heat transfer | ρc_p ∂T/∂t = ∇·(k∇T) + Q; BCs: temperature, convection h(T∞−T), flux, insulated | cell-centred FV, implicit Euler, sparse LU | 1-D Fourier series (< 0.1 K); steady energy balance |
+| Kinetics (coupled) | dX/dt = −k(T)X, k = k_ref·exp[−Eₐ/R(1/T − 1/T_ref)] | exact exponential update per step | — |
+| Duct flow | ∇·(μ(γ̇)∇w) = −G, w = 0 on walls; μ = Kγ̇ⁿ⁻¹ + τ₀(1−e^(−mγ̇))/γ̇ (Papanastasiou, m = 1000 s) | FV with harmonic face viscosity, Picard iteration; secant on G for a prescribed flow rate | Hagen–Poiseuille, power-law and HB pipe flow (≤ 3 %); force balance τ̄_w·P = G·A |
+| Solid mechanics | ∇·σ + ρg = 0, σ = D ε(u), plane stress or strain | bilinear Q4 elements (2×2 Gauss), supports fixed / roller, pressure loads | uniaxial compression exact; reaction = applied load |
+| Diffusion | ∂c/∂t = ∇·(D∇c) | as heat transfer | — |
+
+Assumptions: constant properties per study (taken at the operating temperature from approved library records), no
+phase change or evaporation, laminar fully developed duct flow, small strains. Warnings are issued for T outside
+−40…150 °C, unyielded fraction > 50 % (refine mesh), Re_gen > 2100, displacements > 5 % of the body size and stresses
+above an approved fracture stress.
+
+## Molecular properties (branch `ali`, `backend/app/molecules.py`)
+
+- Net charge Z(pH) = Σ n_i/(1+10^(pH−pK_i)) − Σ n_j/(1+10^(pK_j−pH)) with the EMBOSS pKa set; pI = root of Z = 0.
+- Stokes–Einstein D = k_BT/(6πη(T)R_h); η(T) water, Vogel equation 2.414·10⁻⁵·10^(247.8/(T−140)) Pa·s.
+- R_h: small molecules from the vdW volume (sphere); proteins 1.25·0.066·M^(1/3) nm (Erickson 2009) or R_g/0.775 when a
+  structure is available. These are estimates for dilute aqueous solution.
+- ε280 = 5500·W + 1490·Y + 125·cystine (Pace et al. 1995); GRAVY (Kyte & Doolittle 1982); amino-acid score vs FAO 2013
+  (digestibility not included).
+- Conformers: RDKit ETKDG v3 + MMFF94. Interaction energy E_int = E_AB − E_A − E_B (MMFF94, vacuum, local minimum).
