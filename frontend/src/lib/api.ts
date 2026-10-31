@@ -47,6 +47,11 @@ async function request<T>(method: string, path: string, body?: unknown, quiet = 
     if (!quiet) log('error', 'api', `${method} ${path}: ${msg}`)
     throw new ApiError(0, msg)
   }
+  if (res.status === 401 && !cfg.token && typeof window !== 'undefined') {
+    // hosted deployment: the session expired or is missing -> back to the sign-in page
+    window.location.href = '/login'
+    throw new ApiError(401, 'login required')
+  }
   if (!res.ok) {
     let msg = `${res.status} ${res.statusText}`
     try {

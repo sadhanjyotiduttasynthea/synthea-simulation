@@ -107,6 +107,7 @@ export function Workspace({ children }: { children: ReactNode }) {
         <button onClick={() => toggle('bottom')} title="Messages (Ctrl+3)" className={cx('rounded p-1', showBottom ? 'text-cyan-300' : 'text-neutral-600')}><PanelBottomClose className="h-3.5 w-3.5" /></button>
         <button onClick={() => toggle('right')} title="Settings (Ctrl+2)" className={cx('rounded p-1', showRight ? 'text-cyan-300' : 'text-neutral-600')}><PanelRightClose className="h-3.5 w-3.5" /></button>
         <button onClick={() => setDark(!dark)} className="rounded px-1.5 text-[10.5px] text-neutral-400 hover:text-white">{dark ? 'Light' : 'Dark'}</button>
+        <SignOut />
       </div>
       <Ribbon />
       <div className="min-h-0 flex-1" key={layoutKey}>
@@ -167,6 +168,14 @@ export function Workspace({ children }: { children: ReactNode }) {
       </div>
     </div>
   )
+}
+
+/** Shown only on password-protected (hosted) deployments. */
+function SignOut() {
+  const [on, setOn] = useState(false)
+  useEffect(() => { api.get<{ password_protected: boolean }>('/api/auth/status', true).then((s) => setOn(s.password_protected)).catch(() => undefined) }, [])
+  if (!on) return null
+  return <button onClick={() => api.post('/api/auth/logout').finally(() => { window.location.href = '/login' })} className="rounded px-1.5 text-[10.5px] text-neutral-400 hover:text-white">Sign out</button>
 }
 
 function StatusBar() {

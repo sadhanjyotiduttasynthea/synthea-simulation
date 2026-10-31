@@ -76,6 +76,12 @@ Development window: `cd desktop && SYNTHEA_DEV_PYTHON=/path/to/python npx tauri 
 
 Open <http://localhost:5173>. Or run `./scripts/serve.sh` for a single-port build on <http://localhost:8000>.
 
+### Hosting for a team (free)
+
+Free options without payment or credit card — Hugging Face Spaces with automatic backups to a private dataset
+(recommended), a laptop with a Cloudflare quick tunnel, or the local network: [`docs/DEPLOY_FREE.md`](docs/DEPLOY_FREE.md).
+Set `SYNTHEA_PASSWORD` to protect the site with a shared team password.
+
 ## Demonstration
 
 On the **Overview**, press **Build full demonstration**. It imports the bundled **synthetic test document** (every

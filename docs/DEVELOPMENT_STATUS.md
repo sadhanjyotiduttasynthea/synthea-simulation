@@ -276,3 +276,10 @@ without paid services.
 
 ## Latest verified commit (phase 2)
 - `146c7f6` — R9 pushed to `origin/development` (58 pytest, 12 vitest, 14/14 E2E; Linux release package launched successfully).
+
+## Hosting (branch `hosting-development`)
+- Free team hosting without payment: Docker image (frontend served by the backend, data in `/data`), shared-password
+  sign-in (`SYNTHEA_PASSWORD`), automatic backup/restore of the database and PDFs to a private Hugging Face dataset
+  (`app/backup.py`), deploy script for Hugging Face Spaces and an optional GitHub Action. Guide: `docs/DEPLOY_FREE.md`.
+- Verified: container built; sign-in, app and API; a fresh container with an empty disk restores the data.
+
