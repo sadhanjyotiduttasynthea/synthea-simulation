@@ -34,3 +34,18 @@ def test_metadata_edit_and_citation(client):
     r = client.put(f"/api/papers/{p['id']}", json={"metadata": {"authors": ["Ann Smith", "Bo Li"], "year": 2025}}).json()
     assert r["metadata"]["citation"].startswith("Smith & Li (2025)")
     assert papers.citation({"authors": [], "title": "T"}).startswith("Unknown author")
+
+
+def test_local_summary_is_verbatim_with_pages(client):
+    p = client.post("/api/papers/sample").json()
+    assert client.get(f"/api/papers/{p['id']}/summary").json() is None
+    d = client.post(f"/api/papers/{p['id']}/summary", json={"method": "local"}).json()
+    full = client.get(f"/api/papers/{p['id']}").json()
+    texts = {pg["n"]: " ".join(pg["text"].split()) for pg in full["pages"]}
+    assert d["key_sentences"] and d["method"] == "local"
+    for s in d["key_sentences"]:
+        assert " ".join(s["text"].split())[:50] in texts[s["page"]]  # quoted from the stated page
+    assert any(t["property"] == "viscosity" for t in d["topics"])
+    assert any("SYNTHETIC" in w for w in d["warnings"])
+    r = client.post(f"/api/papers/{p['id']}/summary", json={"method": "claude"})
+    assert r.status_code == 400  # no API key / opt-in -> refused, nothing sent

@@ -74,6 +74,7 @@ PROPERTIES: dict[str, tuple[str, str, str | None, list[str]]] = {
     "particle_size": ("Particle size", "mechanical", "micrometer", ["particle size", "mean particle diameter", "d50", "d[4,3]"]),
     "diffusion_coefficient": ("Diffusion coefficient", "mechanical", "m**2/s", ["moisture diffusivity", "effective diffusivity", "diffusion coefficient"]),
     "elastic_modulus": ("Elastic (Young's) modulus", "mechanical", "Pa", ["young's modulus", "elastic modulus"]),
+    "poissons_ratio": ("Poisson's ratio", "mechanical", None, ["poisson's ratio", "poisson ratio"]),
     "hardness": ("Hardness", "mechanical", "N", ["hardness"]),
     "fracture_stress": ("Fracture stress", "mechanical", "Pa", ["fracture stress", "breaking stress"]),
     "shape_retention": ("Shape retention", "mechanical", "percent", ["shape retention", "shape fidelity"]),
@@ -112,6 +113,7 @@ EVIDENCE_TYPES = {
     "ai_inferred": "AI-inferred interpretation",
     "manual_entry": "Manually entered",
     "illustrative": "Illustrative placeholder",
+    "computed_structure": "Computed from molecular structure",
 }
 REVIEW_STATUSES = ("extracted", "reviewed", "approved", "rejected", "deprecated")
 

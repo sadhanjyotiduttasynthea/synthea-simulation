@@ -18,7 +18,7 @@ from . import db
 from .science import catalog
 
 EVIDENCE_WEIGHT = {"directly_reported": 30, "fitted_parameter": 26, "calculated_from_reported": 22, "author_prediction": 14,
-                   "manual_entry": 12, "ai_inferred": 6, "illustrative": 0}
+                   "manual_entry": 12, "computed_structure": 18, "ai_inferred": 6, "illustrative": 0}
 REVIEW_WEIGHT = {"approved": 25, "reviewed": 15, "extracted": 0, "rejected": -50, "deprecated": -20}
 COND_TOL = {"temperature": ("abs", 5.0), "concentration": ("abs", 2.0), "water_content": ("abs", 3.0), "ph": ("abs", 0.5),
             "shear_rate": ("log", math.log(2.0)), "frequency": ("log", math.log(2.0)), "salt_concentration": ("abs", 0.5)}

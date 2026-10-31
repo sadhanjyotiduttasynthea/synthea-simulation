@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response
 
-from . import db, papers, sample_docs
+from . import db, paper_summary, papers, sample_docs
 
 router = APIRouter(prefix="/api")
 MAX_PDF_BYTES = 80 * 1024 * 1024
@@ -104,3 +104,17 @@ def page_png(pid: str, n: int, zoom: float = 1.5):
 @router.get("/papers/{pid}/search")
 def search(pid: str, page: int, q: str):
     return {"rects": papers.search(_paper(pid), page, q)}
+
+
+@router.post("/papers/{pid}/summary")
+def summarise(pid: str, body: dict = Body(default={})):
+    _paper(pid)
+    try:
+        return paper_summary.summarise(pid, body.get("method", "local"))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.get("/papers/{pid}/summary")
+def get_summary(pid: str):
+    return _paper(pid).get("digest")

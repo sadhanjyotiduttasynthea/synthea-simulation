@@ -2,6 +2,7 @@ import { BookOpen, FileText, FileUp, FlaskConical, Table2, Trash2, Wand2 } from 
 import { useCallback, useEffect, useState, type DragEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PageViewer } from '../components/PageViewer'
+import { PaperSummary } from '../components/PaperSummary'
 import { Alert, Badge, Button, Field, Input, PageHeader, Panel, Spinner, Tabs, cx } from '../components/ui'
 import { api, pickFile } from '../lib/api'
 import type { Library } from '../lib/sci'
@@ -18,7 +19,7 @@ export interface Paper {
   status: string; synthetic_test_document?: boolean; size_bytes?: number; extraction_counts?: Record<string, number>
   pages?: { n: number; text: string; chars: number; width: number; height: number; tables: { id: string; rows: string[][] }[]; has_images: boolean }[]
 }
-type Tab = 'review' | 'preview' | 'text' | 'tables' | 'metadata'
+type Tab = 'summary' | 'review' | 'preview' | 'text' | 'tables' | 'metadata'
 
 export default function Papers() {
   const { toast } = useStore()
@@ -141,6 +142,7 @@ export default function Papers() {
             {paper.synthetic_test_document && <div className="mx-3 mt-2 rounded bg-red-600 px-2 py-1 text-[11px] font-medium text-white">SYNTHETIC TEST DOCUMENT — generated to exercise the pipeline; all values are invented. Do not cite or use for decisions.</div>}
             {paper.warnings.length > 0 && <div className="px-3 pt-2"><Alert kind="warn" title="Import warnings">{paper.warnings.join(' ')}</Alert></div>}
             <div className="px-3 pt-1"><Tabs<Tab> value={tab} onChange={setTab} tabs={[
+              { id: 'summary', label: <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />Summary</span> },
               { id: 'review', label: <span className="flex items-center gap-1"><Wand2 className="h-3.5 w-3.5" />Extraction & review</span> },
               { id: 'preview', label: <span className="flex items-center gap-1"><FileText className="h-3.5 w-3.5" />Document</span> },
               { id: 'text', label: 'Text' },
@@ -148,6 +150,7 @@ export default function Papers() {
               { id: 'metadata', label: 'Metadata' },
             ]} /></div>
             <div className="min-h-0 flex-1">
+              {tab === 'summary' && <div className="@container h-full"><PaperSummary paperId={paper.id} onSource={goto} /></div>}
               {tab === 'review' && <div className="@container h-full"><ExtractionReview paper={paper} onSource={goto} page={page} highlight={highlight} onPage={setPage} onChanged={() => { load(); refreshTree() }} /></div>}
               {tab === 'preview' && paper.pages && (
                 <div className="h-[calc(100%-4px)] min-h-[420px]"><PageViewer paperId={paper.id} page={page} pageCount={paper.page_count} pageWidth={paper.pages[page - 1]?.width ?? 595} highlight={highlight} onPage={(n) => { setPage(n); setHighlight(null) }} /></div>
