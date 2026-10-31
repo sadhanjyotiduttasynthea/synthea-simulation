@@ -278,3 +278,46 @@ def resolve(material_id: str, quantity: str, temperature: float | None = None, c
         return sci_registry.resolve(material_id, quantity, conds, include_unapproved)
     except KeyError:
         raise HTTPException(404, "material not found")
+
+
+# ------------------------------------------------------------------ molecules
+from fastapi import File, UploadFile  # noqa: E402
+
+from . import molecules  # noqa: E402
+
+
+@router.get("/molecules")
+def molecule_catalog():
+    return molecules.catalog()
+
+
+@router.get("/molecules/{key}")
+def molecule(key: str):
+    try:
+        return molecules.builtin(key)
+    except KeyError:
+        raise HTTPException(404, "unknown molecule")
+
+
+@router.post("/molecules/parse")
+async def parse_molecule(file: UploadFile = File(...)):
+    content = (await file.read()).decode("utf-8", errors="replace")
+    return molecules.parse_file(content, file.filename or "structure.pdb")
+
+
+@router.get("/molecular-scenes/{name}")
+def scene(name: str, molecule: str = "glutamic_acid", temperature_c: float = 85.0, time_s: float = 300.0, material_id: str | None = None, order: float = 1.0):
+    if name == "water":
+        return molecules.scene_water()
+    if name == "hydration":
+        return molecules.scene_hydration(molecule)
+    if name == "aggregation":
+        return molecules.scene_aggregation(temperature_c, time_s, material_id)
+    if name == "starch":
+        return molecules.scene_starch(order)
+    raise HTTPException(404, "unknown scene")
+
+
+@router.post("/molecular-scenes/emulsion")
+def emulsion(body: dict = Body(...)):
+    return molecules.emulsion_physics(float(body["radius_um"]), float(body["gamma_mN_m"]), float(body["rho_d"]), float(body["rho_c"]), float(body["mu_c"]))

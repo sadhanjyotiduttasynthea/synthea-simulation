@@ -12,7 +12,7 @@ Branch: `development`
 | R4 AI scientific extraction & review | done |
 | R5 Scientific model registry | done |
 | R6 Geometry editor | done |
-| R7 Molecular visualization | planned |
+| R7 Molecular visualization | done |
 | R8 Digital twin, solvers, results | planned |
 | R9 Desktop packaging & final integration | planned |
 
@@ -46,6 +46,21 @@ Branch: `development`
   idempotent; renormalisation pass when the unit catalogue changes.
 - Overview page redesigned around the knowledge → simulation pipeline (cost KPIs removed from the overview).
 - Tests: +5 backend tests (units, migration idempotence, coexistence/conflicts, history/deprecation, export/import).
+
+### R7 — Molecular visualization
+- Own R3F molecular viewer (instanced atoms/bonds; CPK colours, Bondi vdW radii): ball-and-stick, sticks, space-filling,
+  atom labels, rotation/zoom, auto-rotate; handles tens of thousands of atoms. (Mol* was considered; a lighter viewer was
+  chosen for bundle size and integration with the workspace.)
+- Built-in molecules (water, sugars, maltose, glycerol, fatty acids, amino acids, a dipeptide) as RDKit ETKDGv3 + MMFF94
+  conformers, labelled *computed, not experimental*; exact formula/molar mass and labelled descriptor estimates
+  (TPSA, Crippen logP, H-bond donors/acceptors).
+- User structures: PDB, SDF/MOL, XYZ (connectivity perception) — e.g. experimentally determined protein structures.
+- Interaction scenes, each labelled: water H-bond network (tetrahedral, O···O 2.76 Å), amino-acid hydration (first-shell
+  waters at polar atoms), starch gelatinisation order/disorder, emulsion droplet schematic — all *conceptual*; protein
+  aggregation becomes *model-driven* only when an approved first-order denaturation model exists for the material
+  (X = 1 − exp(−k(T)t)); emulsion physics evaluates Laplace pressure and Stokes velocity from inputs.
+- Synchronised equation panel (bottom Equations tab) for each view.
+- Tests: +6 (water geometry, exact mass, H-bond geometry, file parsing, emulsion relations, approved-model switch).
 
 ### R6 — Geometry editor
 - One geometry document per project (saved with the project and in `.synthea` files): points, lines, rectangles,
