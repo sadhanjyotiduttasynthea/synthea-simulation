@@ -51,11 +51,17 @@ function CameraRig({ preset, fitToken, root, ortho, controls }: { preset: Camera
     if (root.current) box.setFromObject(root.current)
     if (box.isEmpty()) box.set(new THREE.Vector3(-50, -50, -50), new THREE.Vector3(50, 50, 50))
     const c = box.getCenter(new THREE.Vector3())
-    const r = Math.max(box.getSize(new THREE.Vector3()).length() / 2, 1)
-    const dir = { iso: new THREE.Vector3(1, 0.8, 1.1), top: new THREE.Vector3(0, 1, 0.0001), front: new THREE.Vector3(0, 0, 1), right: new THREE.Vector3(1, 0, 0) }[ortho ? 'top' : preset].normalize()
+    const sz = box.getSize(new THREE.Vector3())
+    const p = ortho ? 'top' : preset
+    // axis-aligned views frame the extents perpendicular to the view direction only
+    const asp = Math.max(size.width / Math.max(size.height, 1), 0.2)
+    const perp = { top: Math.max(sz.x / asp, sz.z), front: Math.max(sz.x / asp, sz.y), right: Math.max(sz.z / asp, sz.y), iso: 0 }[p]
+    const along = { top: sz.y, front: sz.z, right: sz.x, iso: 0 }[p]
+    const r = p === 'iso' ? Math.max(sz.length() / 2, 1) : Math.max(perp * 0.62, 1)
+    const dir = { iso: new THREE.Vector3(1, 0.8, 1.1), top: new THREE.Vector3(0, 1, 0.0001), front: new THREE.Vector3(0, 0, 1), right: new THREE.Vector3(1, 0, 0) }[p].normalize()
     if ((camera as THREE.PerspectiveCamera).isPerspectiveCamera) {
       const fov = ((camera as THREE.PerspectiveCamera).fov * Math.PI) / 180
-      camera.position.copy(c).addScaledVector(dir, (r / Math.sin(fov / 2)) * 1.1)
+      camera.position.copy(c).addScaledVector(dir, (r / Math.sin(fov / 2)) * 1.1 + along / 2)
       camera.near = r / 100
       camera.far = r * 100
     } else {

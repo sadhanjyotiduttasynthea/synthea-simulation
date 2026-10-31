@@ -76,6 +76,9 @@ def build_sample_pdf() -> bytes:
                     "Heat-induced denaturation followed first-order kinetics, with a rate constant k = 2.1 x 10<super>-3</super> s-1 at 85 &deg;C and an activation energy of 250 kJ/mol.", body),
           Paragraph("The thermal conductivity of the 15 % dispersion was 0.52 W/(m&middot;K) at 25 &deg;C, and its specific heat capacity was 3.75 kJ/(kg&middot;K). "
                     "The water holding capacity of the isolate was 3.1 &plusmn; 0.2 g/g.", body),
+          Paragraph("The density of the 15 % dispersion was 1060 kg/m<super>3</super> at 25 &deg;C. Heat-set gels (15 % w/w, 90 &deg;C, 30 min) were tested in uniaxial compression: "
+                    "the Young's modulus was 24.0 &plusmn; 2.1 kPa at 25 &deg;C (n = 5), the Poisson's ratio was 0.45 and the fracture stress was 9.5 kPa. "
+                    "The effective moisture diffusivity of the gel was 2.1 x 10<super>-10</super> m<super>2</super>/s at 25 &deg;C.", body),
           Paragraph("4. Conclusions", sec),
           Paragraph("The synthetic data set provides concentration- and temperature-dependent rheological parameters for testing. "
                     "Values outside 10-20 % (w/w), 25-50 &deg;C and 0.1-100 s-1 were not studied.", body),

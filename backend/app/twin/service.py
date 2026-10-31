@@ -15,22 +15,22 @@ from datetime import datetime, timezone
 from .. import db, jobs
 from . import properties as props
 from . import solvers
-from .geometry import GROUPS, MESH_LEVELS, SHAPES, Grid
+from .geometry import MESH_LEVELS, SHAPES, Grid, segments
 from .geometry import properties as geom_props
 
 PHYSICS = {
     "heat": {"label": "Heat transfer in solids", "equation": r"\rho c_p \frac{\partial T}{\partial t} = \nabla\cdot(k\nabla T) + Q",
              "settings": {"steady": False, "initial_c": 20.0, "t_end_s": 600.0, "dt_s": None, "source_w_m3": 0.0, "target_c": None,
                           "kinetics": {"enabled": False}},
-             "bcs": {g: {"type": "convection", "h": 25.0, "ambient": 180.0} for g in GROUPS}},
+             "bcs": {"default": {"type": "convection", "h": 25.0, "ambient": 180.0}}},
     "flow": {"label": "Laminar flow (fully developed duct flow)", "equation": r"\nabla\cdot\left(\mu(\dot\gamma)\nabla w\right) = -G,\quad \mu = K\dot\gamma^{\,n-1} + \frac{\tau_0}{\dot\gamma}\left(1-e^{-m\dot\gamma}\right)",
-             "settings": {"mode": "flow_rate", "flow_rate_l_h": 20.0, "pressure_gradient_pa_m": 1.0e5}, "bcs": {g: {"type": "no_slip"} for g in GROUPS}},
+             "settings": {"mode": "flow_rate", "flow_rate_l_h": 20.0, "pressure_gradient_pa_m": 1.0e5}, "bcs": {"default": {"type": "no_slip"}}},
     "structural": {"label": "Solid mechanics (linear elastic)", "equation": r"\nabla\cdot\boldsymbol\sigma + \rho\mathbf g = 0,\quad \boldsymbol\sigma = \mathbf D\,\boldsymbol\varepsilon(\mathbf u)",
                    "settings": {"plane": "stress", "gravity": True},
-                   "bcs": {"bottom": {"type": "fixed"}, "top": {"type": "free"}, "left": {"type": "free"}, "right": {"type": "free"}, "hole": {"type": "free"}}},
+                   "bcs": {"default": {"type": "free"}, "bottom": {"type": "fixed"}}},
     "diffusion": {"label": "Transport of diluted species", "equation": r"\frac{\partial c}{\partial t} = \nabla\cdot(D\nabla c)",
                   "settings": {"steady": False, "initial": 0.0, "t_end_s": 3600.0, "dt_s": None, "unit": "mol/m³"},
-                  "bcs": {g: {"type": "concentration", "value": 1.0} for g in GROUPS}},
+                  "bcs": {"default": {"type": "concentration", "value": 1.0}}},
 }
 KINETICS_EQ = r"\frac{\partial X}{\partial t} = -k(T)X,\quad k(T) = k_{ref}\exp\left[-\frac{E_a}{R}\left(\frac{1}{T}-\frac{1}{T_{ref}}\right)\right]"
 
@@ -40,7 +40,7 @@ def _now():
 
 
 def catalogue() -> dict:
-    return {"shapes": SHAPES, "groups": GROUPS, "mesh_levels": MESH_LEVELS, "physics": PHYSICS, "kinetics_equation": KINETICS_EQ,
+    return {"shapes": SHAPES, "mesh_levels": MESH_LEVELS, "physics": PHYSICS, "kinetics_equation": KINETICS_EQ,
             "requirements": props.REQUIREMENTS}
 
 
@@ -75,7 +75,7 @@ def get(tid: str) -> dict:
 
 def mesh_preview(twin: dict) -> dict:
     g = Grid(twin["geometry"], twin.get("mesh"))
-    return {"mesh": g.info(), "geometry": geom_props(twin["geometry"])}
+    return {"mesh": g.info(), "geometry": geom_props(twin["geometry"]) | {"segments": [{k: v for k, v in sg.items() if k != "edges"} for sg in segments(twin["geometry"])]}}
 
 
 def _run(twin: dict, ctx: jobs.JobContext) -> dict:

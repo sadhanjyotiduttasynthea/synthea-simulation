@@ -20,7 +20,11 @@ def test_shapes_and_mesh_convergence():
     errs = [abs(Grid({"shape": "circle", "params": {"diameter": 30}}, {"cells_across": n}).info()["area_error_pct"]) for n in (20, 80, 160)]
     assert errs[2] < errs[0] and errs[2] < 1.0
     g = Grid({"shape": "annulus"}, {"level": "coarse"})
-    assert (g.b_group == "hole").sum() > 0
+    assert (g.b_group == "inner").sum() > 0 and (g.b_group == "outer").sum() > (g.b_group == "inner").sum()
+    star = Grid({"shape": "star"}, {"level": "normal"})
+    assert set(star.b_group) == {f"edge{k}" for k in range(1, 11)}  # every face belongs to a named edge
+    rect = Grid({"shape": "rectangle", "params": {"width": 40, "height": 10}}, {"cells_across": 40})
+    assert (rect.b_group == "bottom").sum() == 40 and (rect.b_group == "left").sum() == 10
     with pytest.raises(ValueError):
         polygons({"shape": "annulus", "params": {"outer_diameter": 10, "inner_diameter": 20}})
 
@@ -43,7 +47,7 @@ def test_heat_conduction_matches_fourier_series():
 
 def test_heat_with_kinetics_and_target():
     g = Grid({"shape": "circle", "params": {"diameter": 10}}, {"cells_across": 30})
-    r = S.solve_scalar(g, cond=0.5, cap=3.9e6, bcs={g_: {"type": "temperature", "value": 90} for g_ in ("left", "right", "top", "bottom")}, initial=20,
+    r = S.solve_scalar(g, cond=0.5, cap=3.9e6, bcs={"outer": {"type": "temperature", "value": 90}}, initial=20,
                        t_end=1200, kinetics={"k_ref": 2.1e-3, "Ea": 250e3, "T_ref_c": 85.0}, target=85.0)
     assert r["target"]["time_all_cells_reached_s"] is not None
     assert 0 < r["history"]["x_mean"][-1] < 1 and r["history"]["x_min"][-1] <= r["history"]["x_mean"][-1]
@@ -127,3 +131,17 @@ def test_twin_workflow_from_paper_to_study(client):
     assert client.get(f"/api/twins/{t['id']}/studies").json()[0]["id"] == st["id"]
     tree = client.get(f"/api/workspace/tree?project_id={t['project_id']}").json()
     assert tree is not None
+
+
+def test_demo_twins_run(client):
+    out = client.post("/api/twins/demo", json={"project_id": None}).json()
+    assert len(out["twins"]) == 4 and out["approved"] > 5
+    for tid in out["twins"]:
+        inp = client.get(f"/api/twins/{tid}/inputs").json()
+        assert inp["ready"], inp["missing"]
+        done = jobs.wait(client.post(f"/api/twins/{tid}/studies").json()["id"], 300)
+        assert done["status"] == "done", done["log"][-3:]
+    st = client.get(f"/api/twins/{out['twins'][2]}/studies").json()[0]
+    s = client.get(f"/api/studies/{st['id']}").json()
+    r = next(iter(s["results"].values()))
+    assert r["kind"] == "structural" and r["safety_factor"] > 0 and abs(r["equilibrium"]["residual_n"]) < 1e-6

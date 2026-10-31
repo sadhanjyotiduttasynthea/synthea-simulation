@@ -9,9 +9,11 @@ its centre lies inside the shape. Curved boundaries are therefore represented by
 The area error of this approximation is reported as a mesh-quality indicator and decreases
 with refinement.
 
-Boundary faces are grouped by outward normal: ``left`` (-x), ``right`` (+x), ``bottom`` (-y),
-``top`` (+y) and ``hole`` (faces whose outside neighbour lies inside a hole). Boundary
-conditions are assigned per group.
+Boundary *segments* are the edges of the shape: ``bottom/right/top/left`` for a rectangle,
+named edges for the L-shape, ``side n`` / ``edge n`` for polygons and stars, ``outer`` /
+``inner`` for curved outlines and holes. Every boundary face of the staircase mesh is
+assigned to the nearest segment. Boundary conditions are set per segment, with a
+``default`` for all segments that are not set explicitly.
 """
 from __future__ import annotations
 
@@ -29,7 +31,6 @@ SHAPES = {
     "star": {"label": "Star", "params": {"outer_diameter": 40.0, "inner_diameter": 20.0, "points": 5}},
     "polygon": {"label": "Custom polygon", "params": {"points": [[0, 0], [40, 0], [40, 10], [20, 25], [0, 10]]}},
 }
-GROUPS = ("left", "right", "bottom", "top", "hole")
 MESH_LEVELS = {"extra_coarse": 24, "coarse": 40, "normal": 70, "fine": 110, "extra_fine": 160}
 MAX_CELLS_ACROSS = 220
 
@@ -89,6 +90,41 @@ def polygons(geom: dict) -> tuple[np.ndarray, list[np.ndarray]]:
             raise ValueError("Custom polygon has zero area")
         return pts, holes
     raise ValueError(f"Unknown shape '{s}'")
+
+
+def segments(geom: dict) -> list[dict]:
+    """Named boundary segments: [{id, label, ring (0 = outer, k = hole k), edges: [edge indices]}]."""
+    s = geom.get("shape", "rectangle")
+    outer, holes = polygons(geom)
+    n = len(outer)
+    if s == "rectangle":
+        segs = [("bottom", "Bottom", [0]), ("right", "Right", [1]), ("top", "Top", [2]), ("left", "Left", [3])]
+    elif s == "l_shape":
+        segs = [("bottom", "Bottom", [0]), ("right", "Right (short)", [1]), ("step", "Step (top of short leg)", [2]), ("inner", "Inner side", [3]),
+                ("top", "Top", [4]), ("left", "Left", [5])]
+    elif s in ("circle", "ellipse", "annulus"):
+        segs = [("outer", "Outer surface", list(range(n)))]
+    elif s == "hexagon":
+        segs = [(f"side{k + 1}", f"Side {k + 1}", [k]) for k in range(n)]
+    else:
+        segs = [(f"edge{k + 1}", f"Edge {k + 1}: ({outer[k][0]:g}, {outer[k][1]:g}) → ({outer[(k + 1) % n][0]:g}, {outer[(k + 1) % n][1]:g})", [k]) for k in range(n)]
+    out = [{"id": i, "label": l, "ring": 0, "edges": e} for i, l, e in segs]
+    for k, _h in enumerate(holes):
+        out.append({"id": "inner" if s == "annulus" else f"hole{k + 1}", "label": "Inner surface" if s == "annulus" else f"Hole {k + 1}", "ring": k + 1, "edges": None})
+    return out
+
+
+def _seg_dist(px, py, P):
+    """Distance of points to every edge of polygon P -> array (points, edges)."""
+    a = P
+    b = np.roll(P, -1, 0)
+    ab = b - a
+    L2 = np.maximum((ab ** 2).sum(1), 1e-30)
+    t = ((px[:, None] - a[None, :, 0]) * ab[None, :, 0] + (py[:, None] - a[None, :, 1]) * ab[None, :, 1]) / L2[None, :]
+    t = np.clip(t, 0, 1)
+    cx = a[None, :, 0] + t * ab[None, :, 0]
+    cy = a[None, :, 1] + t * ab[None, :, 1]
+    return np.hypot(px[:, None] - cx, py[:, None] - cy)
 
 
 def poly_area(P: np.ndarray) -> float:
@@ -155,6 +191,7 @@ class Grid:
         self.n = int(m.sum())
         self.jc, self.ic = np.nonzero(m)  # row (y), column (x) of each cell in index order
         self.xc_mm, self.yc_mm = xc[m], yc[m]
+        self.segments = segments(geom)
         self._faces(holes)
 
     def _faces(self, holes):
@@ -180,17 +217,27 @@ class Grid:
             bc_dir.append(np.full(len(cells), name, object))
         self.b_cell = np.concatenate(bc_cell)
         self.b_dir = np.concatenate(bc_dir)
-        group = self.b_dir.copy()
-        if holes:
-            off = {"left": (-1, 0), "right": (1, 0), "bottom": (0, -1), "top": (0, 1)}
-            ox = np.array([off[d][0] for d in self.b_dir])
-            oy = np.array([off[d][1] for d in self.b_dir])
-            px = self.xc_mm[self.b_cell] + ox * self.h_mm
-            py = self.yc_mm[self.b_cell] + oy * self.h_mm
-            in_hole = np.zeros(len(px), bool)
-            for hole in holes:
-                in_hole |= inside(hole, px, py)
-            group[in_hole] = "hole"
+        # assign every boundary face to the nearest segment (outer polygon edges or hole rings)
+        off = {"left": (-0.5, 0), "right": (0.5, 0), "bottom": (0, -0.5), "top": (0, 0.5)}
+        fx = self.xc_mm[self.b_cell] + np.array([off[d][0] for d in self.b_dir]) * self.h_mm
+        fy = self.yc_mm[self.b_cell] + np.array([off[d][1] for d in self.b_dir]) * self.h_mm
+        rings = [self.outer_mm] + list(holes)
+        best_d = np.full(len(fx), np.inf)
+        best_ring = np.zeros(len(fx), int)
+        best_edge = np.zeros(len(fx), int)
+        for r, P in enumerate(rings):
+            d = _seg_dist(fx, fy, P)
+            e = d.argmin(1)
+            dm = d[np.arange(len(fx)), e]
+            better = dm < best_d
+            best_d[better], best_ring[better], best_edge[better] = dm[better], r, e[better]
+        group = np.empty(len(fx), object)
+        for seg in self.segments:
+            if seg["ring"] == 0:
+                sel = (best_ring == 0) & np.isin(best_edge, seg["edges"])
+            else:
+                sel = best_ring == seg["ring"]
+            group[sel] = seg["id"]
         self.b_group = group
 
     def boundary_nodes(self, group: str) -> np.ndarray:
@@ -208,9 +255,11 @@ class Grid:
     def info(self) -> dict:
         exact = abs(poly_area(self.outer_mm)) - sum(abs(poly_area(h)) for h in self.holes_mm)
         meshed = self.n * self.h_mm ** 2
-        groups = {g: int((self.b_group == g).sum()) for g in GROUPS}
+        groups = {sg["id"]: int((self.b_group == sg["id"]).sum()) for sg in self.segments}
         return {"nx": self.nx, "ny": self.ny, "h_mm": self.h_mm, "cells": self.n, "x0_mm": self.x0, "y0_mm": self.y0,
                 "depth_mm": self.depth * 1000, "nodes": int(self._node_count()), "boundary_faces": groups,
+                "segments": [{k: sg[k] for k in ("id", "label")} | {"faces": groups[sg["id"]]} for sg in self.segments],
+                "boundary_cells": {sg["id"]: sorted({int(c) for c in self.b_cell[self.b_group == sg["id"]]}) for sg in self.segments},
                 "exact_area_mm2": exact, "meshed_area_mm2": meshed, "area_error_pct": 100 * (meshed - exact) / exact,
                 "mask": "".join("1" if v else "0" for v in self.mask.ravel())}
 

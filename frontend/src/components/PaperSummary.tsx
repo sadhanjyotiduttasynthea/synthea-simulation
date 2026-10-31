@@ -27,6 +27,13 @@ export function PaperSummary({ paperId, onSource }: { paperId: string; onSource:
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
+
+  const run = async (method: 'local' | 'claude') => {
+    setBusy(true)
+    setErr(null)
+    try { setD(await api.post<Digest>(`/api/papers/${paperId}/summary`, { method })) } catch (e) { setErr((e as Error).message) } finally { setBusy(false) }
+  }
+
   useEffect(() => {
     setErr(null)
     api.get<Digest | null>(`/api/papers/${paperId}/summary`).then((x) => {
@@ -34,12 +41,6 @@ export function PaperSummary({ paperId, onSource }: { paperId: string; onSource:
       else { setD(null); run('local') }
     })
   }, [paperId])  // eslint-disable-line react-hooks/exhaustive-deps
-
-  const run = async (method: 'local' | 'claude') => {
-    setBusy(true)
-    setErr(null)
-    try { setD(await api.post<Digest>(`/api/papers/${paperId}/summary`, { method })) } catch (e) { setErr((e as Error).message) } finally { setBusy(false) }
-  }
 
   return (
     <div className="h-full space-y-3 overflow-auto p-3 text-sm">

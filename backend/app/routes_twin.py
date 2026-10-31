@@ -38,6 +38,12 @@ def create_twin(body: dict = Body(default={})):
         raise HTTPException(400, str(e))
 
 
+@router.post("/twins/demo")
+def demo_twins(body: dict = Body(default={})):
+    from .twin import demo
+    return demo.build(body.get("project_id"))
+
+
 @router.get("/twins/{tid}")
 def get_twin(tid: str):
     return _twin(tid)

@@ -210,7 +210,34 @@ def extract_sentences(pages: list[dict], primary_material: dict | None) -> list[
             for span, alen, c in found:
                 if claimed.get(span) == alen:
                     cands.append(c)
+            cands += _dimensionless(sent, pg["n"], primary_material)
     return cands
+
+
+# Dimensionless properties are only extracted with a narrow pattern directly after the alias and
+# a physical range check (bare numbers are otherwise too ambiguous).
+DIMENSIONLESS = {"poissons_ratio": (r"(?:was|of|=|is|:)\s*(\d?\.\d+)", (0.0, 0.5))}
+
+
+def _dimensionless(sent: str, page: int, primary_material: dict | None) -> list[dict]:
+    out = []
+    low = sent.lower()
+    for key, (pat, (lo, hi)) in DIMENSIONLESS.items():
+        label, _cat, _u, aliases = catalog.PROPERTIES[key]
+        for alias in aliases:
+            ma = re.search(r"(?<![a-z])" + re.escape(alias) + r"(?![a-z])", low)
+            if not ma:
+                continue
+            mv = re.match(r"\s*" + pat, sent[ma.end(): ma.end() + 25])
+            if mv:
+                v = float(mv.group(1))
+                if lo <= v <= hi:
+                    out.append({"kind": "property", "property": key, "label": label, "value": v, "unit": "", "uncertainty": {}, "n": None,
+                                "conditions": {}, "page": page, "snippet": sent, "value_text_in_source": mv.group(1), "evidence_type": "directly_reported",
+                                "confidence": "low", "material_name": (primary_material or {}).get("name"), "material_id": (primary_material or {}).get("material_id"),
+                                "notes": "Dimensionless value matched directly after its name; verify against the source."})
+            break
+    return out
 
 
 def _header_key(h: str) -> tuple[str | None, str | None, str | None]:

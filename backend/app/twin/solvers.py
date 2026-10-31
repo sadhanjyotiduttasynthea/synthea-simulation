@@ -49,11 +49,18 @@ def _never():
 def pack(a: np.ndarray, sig: int = 5) -> list:
     """Round to significant figures for compact JSON."""
     a = np.asarray(a, float)
-    with np.errstate(divide="ignore", invalid="ignore"):
+    a = np.where(np.abs(a) < 1e-250, 0.0, a)
+    with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
         mag = np.where(a == 0, 0, np.floor(np.log10(np.abs(np.where(a == 0, 1, a)))))
-    f = 10.0 ** (sig - 1 - mag)
-    out = np.round(a * f) / f
+        f = 10.0 ** (sig - 1 - mag)
+        out = np.round(a * f) / f
+    out = np.where(np.isfinite(out), out, a)
     return [None if not math.isfinite(v) else float(v) for v in out]
+
+
+def bc_for(bcs: dict, segment: str, fallback: dict) -> dict:
+    """Boundary condition of a segment; segments not set explicitly use ``default``."""
+    return bcs.get(segment) or bcs.get("default") or fallback
 
 
 # ---------------------------------------------------------------- scalar diffusion (heat / mass)
@@ -74,7 +81,7 @@ def boundary_terms(g: Grid, cond: float, bcs: dict, kind: str = "heat") -> tuple
     fixed_name = "temperature" if kind == "heat" else "concentration"
     coef_name = "h" if kind == "heat" else "km"
     for grp in np.unique(g.b_group):
-        bc = bcs.get(grp) or {"type": "insulated"}
+        bc = bc_for(bcs, grp, {"type": "insulated"})
         cells = g.b_cell[g.b_group == grp]
         t = bc.get("type", "insulated")
         if t == fixed_name or t == "fixed":
@@ -183,7 +190,7 @@ def _balance(g, cond, bcs, T, kind, source):
     """Boundary flow (W, or mol/s per unit concentration scale) at the given field, by group."""
     out = {}
     for grp in np.unique(g.b_group):
-        bc = bcs.get(grp) or {"type": "insulated"}
+        bc = bc_for(bcs, grp, {"type": "insulated"})
         cells = g.b_cell[g.b_group == grp]
         t = bc.get("type", "insulated")
         if t in ("temperature", "concentration", "fixed"):
@@ -387,7 +394,7 @@ def solve_elasticity(g: Grid, *, E: float, nu: float, density: float | None, bcs
     normals = {"left": (-1, 0), "right": (1, 0), "bottom": (0, -1), "top": (0, 1)}
     face_nodes = {"left": ((0, 0), (1, 0)), "right": ((0, 1), (1, 1)), "bottom": ((0, 0), (0, 1)), "top": ((1, 0), (1, 1))}
     for grp in np.unique(g.b_group):
-        bc = bcs.get(grp) or {"type": "free"}
+        bc = bc_for(bcs, grp, {"type": "free"})
         ty = bc.get("type", "free")
         sel = g.b_group == grp
         cells, dirs = g.b_cell[sel], g.b_dir[sel]
@@ -400,10 +407,11 @@ def solve_elasticity(g: Grid, *, E: float, nu: float, density: float | None, bcs
             na = remap[(j + aj) * nxn + i + ai]
             nb = remap[(j + bj) * nxn + i + bi]
             nodes = np.r_[na, nb]
-            if ty == "fixed" or (ty == "roller" and grp == "hole"):
+            if ty == "fixed":
                 fixed[2 * nodes] = True
                 fixed[2 * nodes + 1] = True
             elif ty == "roller":
+                # normal displacement fixed; exact on axis-parallel edges, staircase-normal on inclined/curved ones
                 comp = 0 if d in ("left", "right") else 1
                 fixed[2 * nodes + comp] = True
             elif ty == "pressure":
