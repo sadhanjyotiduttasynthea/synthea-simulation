@@ -1,0 +1,22 @@
+# Redeploy the Hugging Face Space on every push to the ali branch (free).
+# Enable: repository Settings → Secrets and variables → Actions:
+#   secret  HF_TOKEN  = Hugging Face write token
+#   variable HF_SPACE = <owner>/<space-name>
+name: Deploy to Hugging Face Space
+on:
+  push:
+    branches: [ali]
+  workflow_dispatch:
+jobs:
+  deploy:
+    if: ${{ vars.HF_SPACE != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "huggingface_hub>=0.24"
+      - run: ./scripts/deploy_hf_space.sh "${{ vars.HF_SPACE }}"
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}

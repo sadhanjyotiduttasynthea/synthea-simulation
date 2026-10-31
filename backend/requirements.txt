@@ -12,3 +12,4 @@ pint>=0.24
 sympy>=1.13
 rdkit>=2024.3
 python-multipart>=0.0.9
+huggingface_hub>=0.24
