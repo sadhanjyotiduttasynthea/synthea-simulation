@@ -82,7 +82,7 @@ def test_elasticity_uniaxial_compression_is_exact():
 
 
 # ------------------------------------------------------------------ paper -> library -> twin
-def _approve(client, cands, prop, value, mid="mat-pea-protein-isolate"):
+def _approve(client, cands, prop, value, mid="mat-faba-protein-isolate"):
     c = next(c for c in cands if c["kind"] == "property" and c["property"] == prop and abs((c["value"] or 0) - value) < 1e-9)
     assert client.post(f"/api/extractions/{c['id']}/approve", json={"material_id": mid, "review_status": "approved"}).status_code == 200
 
@@ -100,7 +100,7 @@ def test_twin_workflow_from_paper_to_study(client):
     _approve(client, cands, "thermal_conductivity", 0.52)
     _approve(client, cands, "specific_heat", 3.75)
     hb = next(c for c in cands if c["kind"] == "equation" and c["equation"].get("template") == "herschel_bulkley")
-    client.post(f"/api/extractions/{hb['id']}/approve", json={"material_id": "mat-pea-protein-isolate", "review_status": "approved", "parameter_sets": [0]})
+    client.post(f"/api/extractions/{hb['id']}/approve", json={"material_id": "mat-faba-protein-isolate", "review_status": "approved", "parameter_sets": [0]})
     for m in client.get("/api/sci-models").json():
         client.post(f"/api/sci-models/{m['id']}/status", json={"status": "approved"})
     inp = client.get(f"/api/twins/{t['id']}/inputs").json()

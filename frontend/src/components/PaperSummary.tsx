@@ -14,6 +14,7 @@ export type Digest = {
   topics: { property: string; label: string; mentions: number }[]
   materials: { material_id: string; name: string; mentions: number }[]
   abbreviations?: Record<string, string>
+  species?: Record<string, number>
   sections: string[]
   page_count: number
   tables: number
@@ -89,6 +90,7 @@ export function PaperSummary({ paperId, onSource }: { paperId: string; onSource:
               <div className="flex flex-wrap gap-1">
                 {d.materials.length === 0 && <span className="text-xs text-neutral-500">No library materials mentioned.</span>}
                 {d.materials.map((m) => <span key={m.material_id} className="rounded border border-neutral-200 px-1.5 py-0.5 text-[11px] dark:border-white/10">{m.name} <b>{m.mentions}</b></span>)}
+                {Object.entries(d.species ?? {}).map(([k, n]) => <span key={k} className="rounded bg-emerald-100 px-1.5 py-0.5 text-[11px] text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-200"><i>{k}</i> <b>{n}</b></span>)}
                 {Object.entries(d.abbreviations ?? {}).map(([a, n]) => <span key={a} className="rounded bg-neutral-100 px-1.5 py-0.5 text-[11px] dark:bg-white/10">{a} = {n}</span>)}
               </div>
             </section>

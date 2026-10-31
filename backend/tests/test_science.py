@@ -13,14 +13,15 @@ def lines(d):
 
 
 def test_baseline_mass_balance_and_cost():
-    r = nutrition.composition(lines(seed.BASELINE), 30)
-    # protein = 0.20*80 + 0.25*0.1 + 0.005*1.0
-    assert r.composition["protein"] == pytest.approx(16.03, abs=1e-9)
-    assert r.composition["fat"] == pytest.approx(0.2 * 6 + 0.25 * 0.1 + 0.08 * 100, abs=1e-9)
-    expected_cost = 0.2 * 4.8 + 0.45 * 0.003 + 0.25 * 1.1 + 0.08 * 1.7 + 0.005 * 14 + 0.015 * 0.35
+    r = nutrition.composition(lines(seed.BASELINE), 50)
+    # protein = 0.12*86 (FBPI) + 0.06*60 (FBPC) + 0.08*0.1 (starch) + 0.005*1.0 (xanthan)
+    protein = 0.12 * 86 + 0.06 * 60 + 0.08 * 0.1 + 0.005 * 1.0
+    assert r.composition["protein"] == pytest.approx(protein, abs=1e-9)
+    assert r.composition["fat"] == pytest.approx(0.12 * 2.5 + 0.06 * 3 + 0.08 * 0.1 + 0.15 * 100, abs=1e-9)
+    expected_cost = 0.12 * 6.2 + 0.06 * 2.9 + 0.57 * 0.003 + 0.08 * 1.1 + 0.15 * 1.7 + 0.005 * 14 + 0.015 * 0.35
     assert r.cost_per_kg == pytest.approx(expected_cost)
-    assert r.cost_per_serving == pytest.approx(expected_cost * 0.03)
-    assert r.cost_per_g_protein == pytest.approx(expected_cost / 160.3)
+    assert r.cost_per_serving == pytest.approx(expected_cost * 0.05)
+    assert r.cost_per_g_protein == pytest.approx(expected_cost / (protein * 10))
     assert r.total_percent == pytest.approx(100)
     assert not r.warnings
     c = r.composition

@@ -32,7 +32,7 @@ def _prop(client, mid, value, conds, citation, status="approved", unit="Pa·s"):
 
 
 def test_condition_aware_records_coexist_and_conflicts_reported(client):
-    m = client.post("/api/materials", json={"name": "Test pea protein", "library_ids": ["lib-plant-protein"]}).json()
+    m = client.post("/api/materials", json={"name": "Test faba bean protein", "library_ids": ["lib-plant-protein"]}).json()
     a = _prop(client, m["id"], 2.0, {"temperature": 25, "concentration": 15, "shear_rate": 10}, "Paper A")
     b = _prop(client, m["id"], 3500, {"temperature": 26, "concentration": 15, "shear_rate": 12}, "Paper B", unit="mPa·s")
     c = _prop(client, m["id"], 0.5, {"temperature": 60, "concentration": 15, "shear_rate": 10}, "Paper C")

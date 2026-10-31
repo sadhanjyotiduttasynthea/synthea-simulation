@@ -72,21 +72,22 @@ The SQLite database is created automatically at `backend/data/synthea.db` and se
 Set `ANTHROPIC_API_KEY` in the backend environment before starting it (optionally `SYNTHEA_AI_MODEL`). The key stays on
 the server. Without it, everything still works with the built-in explainer.
 
-## Hackathon demo — *Affordable Pea Protein Snack*
+## Hackathon demo — *Faba Bean Plant-Based Sausage*
 
 | # | Step | Where |
 |---|---|---|
 | 1 | Open the preloaded project | Dashboard (walkthrough checklist) |
-| 2 | Inspect the six ingredients and their provenance | Materials Library |
+| 2 | Inspect the seven ingredients (faba bean protein isolate FBPI and concentrate FBPC, water, potato starch, sunflower oil, xanthan gum, salt) and their provenance | Materials Library |
 | 3–4 | Edit the baseline formulation; nutrition and cost update immediately | Formulation Studio |
-| 5–8 | Protein ≥ 15 %, cost ≤ €2.20/kg → **Run optimiser** → compare *Lowest cost / Balanced (Pareto) / Highest protein*; try protein ≥ 60 % to see the infeasibility diagnosis | AI Optimizer |
+| 5–8 | Protein ≥ 12 %, cost ≤ €1.60/kg → **Run optimiser** → compare *Lowest cost / Balanced (Pareto) / Highest protein*; try protein ≥ 60 % to see the infeasibility diagnosis | AI Optimizer |
 | 9 | Edit the illustrative savings scenario (200 vs 60 experiments, €170, 2 kg, software cost) | Experiments → Cost-reduction calculator |
 | 10–11 | **To process** → **Run simulation** | AI Optimizer → Process Simulator |
 | 12–13 | **To 3D print** → toolpath animates automatically | AI Optimizer → 3D Printing Lab |
 | 14 | **Generate PDF report** (or JSON / CSV) | Reports |
 
-Expected optimiser results with the illustrative demo data: lowest cost 15.0 % protein at €1.268/kg;
-Pareto knee 31.5 % at €2.008/kg; highest protein 34.9 % at the €2.20/kg budget.
+Expected optimiser results with the illustrative demo data (output of the engine, all prices illustrative): lowest cost
+12.0 % protein at €0.814/kg (FBPC only, no FBPI); Pareto knee 19.7 % at €1.262/kg; highest protein 24.4 % at the
+€1.60/kg budget. Excluding the "faba" allergen makes the problem infeasible (no other protein source).
 
 The whole demo runs without paid services. Run `node e2e/demo-walkthrough.mjs` (with Playwright available) to check all
 14 steps automatically.

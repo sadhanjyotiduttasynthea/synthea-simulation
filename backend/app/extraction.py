@@ -102,6 +102,25 @@ def sentences(text: str) -> list[str]:
 
 
 # ----------------------------------------------------------------- materials
+# Species aliases recognised in papers (the platform covers faba bean protein: isolate FBPI, concentrate FBPC).
+SPECIES_ALIASES = {"Vicia faba": ["faba bean", "fava bean", "broad bean", "vicia faba", "field bean"]}
+PRODUCT_ABBREVIATIONS = {"FBPI": "faba bean protein isolate", "FBPC": "faba bean protein concentrate"}
+
+
+def species_mentions(full_text: str) -> dict:
+    low = full_text.lower()
+    out = {}
+    for sp, aliases in SPECIES_ALIASES.items():
+        n = sum(len(re.findall(r"(?<![a-z])" + re.escape(a) + r"(?![a-z])", low)) for a in aliases)
+        if n:
+            out[sp] = n
+    for ab, name in PRODUCT_ABBREVIATIONS.items():
+        n = len(re.findall(r"\b" + ab + r"\b", full_text))
+        if n:
+            out[f"{ab} ({name})"] = n
+    return out
+
+
 def material_candidates(full_text: str) -> list[dict]:
     """Known materials mentioned in the paper (by name/synonym) and defined abbreviations."""
     low = full_text.lower()
@@ -125,7 +144,7 @@ ALL_ALIASES = sorted({a for v in catalog.PROPERTIES.values() for a in v[3] if " 
 
 def _extraction_aliases(aliases: list[str]) -> list[str]:
     """Multi-word aliases (or a short allow-list of unambiguous single words) to avoid false positives
-    such as 'protein' in 'pea protein isolate'."""
+    such as 'protein' in 'faba bean protein isolate'."""
     return [a for a in aliases if " " in a or a in SAFE_SINGLE_WORD]
 
 

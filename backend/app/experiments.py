@@ -177,11 +177,12 @@ def synthetic_dataset(ids: list[str], bounds: dict, n: int = 12, seed: int = 42)
 
     for r, j in enumerate(idx):
         x = cands[j]
-        solids = g("pea-protein-isolate", x) + g("potato-starch", x)
+        protein_ings = g("faba-protein-isolate", x) + g("faba-protein-concentrate", x)
+        solids = protein_ings + g("potato-starch", x)
         logv = -1.0 + 0.09 * solids + 2.2 * g("xanthan-gum", x) - 0.02 * g("sunflower-oil", x) + 0.15 * rng.standard_normal()
         visc = float(math.exp(logv))
         retention = float(np.clip(35 + 18 * math.tanh((logv - 3.0) / 1.2) + 20 * g("xanthan-gum", x) + 4 * rng.standard_normal(), 0, 100))
-        hardness = float(max(0.5, 2 + 0.25 * g("pea-protein-isolate", x) + 0.1 * g("potato-starch", x) + rng.standard_normal()))
+        hardness = float(max(0.5, 2 + 0.25 * protein_ings + 0.1 * g("potato-starch", x) + rng.standard_normal()))
         out.append({
             "name": f"SYN-{r + 1:02d}",
             "data_type": "synthetic_demo",

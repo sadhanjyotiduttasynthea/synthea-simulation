@@ -16,6 +16,9 @@ export interface Ingredient {
   economics: { price_per_kg: number | null; currency?: string; supplier?: string; date?: string; provenance?: string }
   evidence: { references: string[]; measurement_conditions?: string; uncertainty?: string; validation_status?: string }
   provenance: Record<string, Provenance>
+  /** Faba-bean-specific fields; null = missing until measured or sourced. */
+  faba?: { legumin_vicilin_ratio: number | null; denaturation_temperatures_c: string | null; vicine_mg_per_g: number | null; convicine_mg_per_g: number | null; off_flavour_markers: string | null }
+  synonyms?: string[]
   updated_at?: string
 }
 

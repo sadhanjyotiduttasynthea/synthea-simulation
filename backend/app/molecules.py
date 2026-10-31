@@ -65,7 +65,7 @@ STARTERS = [
     {"name": "L-Leucine", "smiles": "CC(C)C[C@H](N)C(=O)O", "category": "amino acid"},
     {"name": "L-Glutamic acid", "smiles": "N[C@@H](CCC(=O)O)C(=O)O", "category": "amino acid"},
     {"name": "Vanillin", "smiles": "COc1cc(C=O)ccc1O", "category": "flavour"},
-    {"name": "Hexanal (off-flavour in pea)", "smiles": "CCCCCC=O", "category": "flavour"},
+    {"name": "Hexanal (beany off-flavour marker in legumes)", "smiles": "CCCCCC=O", "category": "flavour"},
     {"name": "Caffeine", "smiles": "Cn1cnc2c1c(=O)n(C)c(=O)n2C", "category": "bioactive"},
     {"name": "Phytic acid", "smiles": "OP(=O)(O)O[C@@H]1[C@H](OP(=O)(O)O)[C@@H](OP(=O)(O)O)[C@H](OP(=O)(O)O)[C@@H](OP(=O)(O)O)[C@H]1OP(=O)(O)O", "category": "antinutrient"},
     {"name": "Sodium chloride (ion pair)", "smiles": "[Na+].[Cl-]", "category": "salt"},

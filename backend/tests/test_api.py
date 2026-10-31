@@ -3,13 +3,19 @@ from app import seed
 
 def test_health_and_seed(client):
     r = client.get("/api/health").json()
-    assert r["status"] == "ok" and r["ingredients"] == 6
+    assert r["status"] == "ok" and r["ingredients"] == 7
     projects = client.get("/api/projects").json()
-    assert projects[0]["name"] == "Affordable Pea Protein Snack"
+    assert projects[0]["name"] == "Faba Bean Plant-Based Sausage"
+    ings = {i["id"]: i for i in client.get("/api/ingredients").json()}
+    assert {"faba-protein-isolate", "faba-protein-concentrate"} <= set(ings)
+    fbpi = ings["faba-protein-isolate"]
+    assert all(v is None for v in fbpi["faba"].values()) and fbpi["provenance"]["faba"] == "missing"
+    assert fbpi["provenance"]["nutrition"] == "illustrative" and fbpi["evidence"]["references"] == []
+    assert "FBPI" in fbpi["synonyms"] and any("Vicia faba" in s for s in fbpi["synonyms"])
 
 
 def test_ingredient_crud(client):
-    new = {"name": "Faba bean protein concentrate", "category": "Protein", "nutrition": {"protein": 60}, "economics": {"price_per_kg": 3.0}}
+    new = {"name": "Test protein ingredient", "category": "Protein", "nutrition": {"protein": 60}, "economics": {"price_per_kg": 3.0}}
     r = client.post("/api/ingredients", json=new)
     assert r.status_code == 200
     iid = r.json()["id"]
@@ -24,8 +30,8 @@ def test_ingredient_crud(client):
 
 def test_evaluate_and_optimize(client):
     f = client.get("/api/formulations", params={"project_id": seed.PROJECT_ID}).json()[0]
-    r = client.post("/api/formulations/evaluate", json={"lines": f["lines"], "serving_size_g": 30}).json()
-    assert abs(r["composition"]["protein"] - 16.03) < 1e-9
+    r = client.post("/api/formulations/evaluate", json={"lines": f["lines"], "serving_size_g": 50}).json()
+    assert abs(r["composition"]["protein"] - (0.12 * 86 + 0.06 * 60 + 0.08 * 0.1 + 0.005)) < 1e-9
     assert r["thermal"]["model"].startswith("Choi")
     assert "not available" in r["predictive_models"]["viscosity"]
     proj = client.get(f"/api/projects/{seed.PROJECT_ID}").json()

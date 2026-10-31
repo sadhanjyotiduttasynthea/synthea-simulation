@@ -69,7 +69,7 @@ export default function Dashboard() {
           <Button size="sm" onClick={() => emitCommand('file.open')}>Open…</Button>
           <Button size="sm" onClick={() => emitCommand('file.save')}>Save</Button>
           <Button size="sm" onClick={() => act(async () => { const p = await api.post<Project>(`/api/projects/${project.id}/duplicate`); await refreshProjects(); await selectProject(p.id) }, 'Project duplicated')}><Copy className="h-3.5 w-3.5" />Duplicate</Button>
-          {project.id === 'demo-pea-snack' ? (
+          {project.id === 'demo-faba-sausage' ? (
             <Button size="sm" variant="ghost" onClick={() => confirm('Reset the demo project (formulations, experiments, flows)? Global libraries are not affected.') && act(async () => { await api.post('/api/admin/reset-demo'); await init() }, 'Demo project reset')}><RotateCcw className="h-3.5 w-3.5" />Reset demo</Button>
           ) : (
             <Button size="sm" variant="danger" onClick={() => confirm(`Delete project "${project.name}"?`) && act(async () => { await api.del(`/api/projects/${project.id}`); await refreshProjects(); const n = useStore.getState().projects[0]; if (n) await selectProject(n.id) }, 'Project deleted')}><Trash2 className="h-3.5 w-3.5" />Delete</Button>

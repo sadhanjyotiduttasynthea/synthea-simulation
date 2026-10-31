@@ -4,7 +4,7 @@ DATA INTEGRITY NOTICE
 ---------------------
 Ingredient values below are *illustrative demonstration values* unless the
 provenance says otherwise. Proximate compositions of the commercial
-ingredients (pea protein isolate, potato starch, xanthan gum) vary by supplier
+ingredients (faba bean protein isolate and concentrate, potato starch, xanthan gum) vary by supplier
 and lot; they must be replaced by the supplier certificate of analysis or by
 in-house measurements before decisions are made. Prices are illustrative
 placeholders, not market quotations. Physical constants of pure water and
@@ -18,10 +18,18 @@ ILLUSTRATIVE = "illustrative"
 LITERATURE = "literature"
 MISSING = "missing"
 
-PROJECT_ID = "demo-pea-snack"
+PROJECT_ID = "demo-faba-sausage"
+FBPI = "faba-protein-isolate"
+FBPC = "faba-protein-concentrate"
+
+# Faba-relevant fields (Vicia faba). Every value defaults to None = "missing" until measured or sourced.
+EMPTY_FABA = {"legumin_vicilin_ratio": None, "denaturation_temperatures_c": None, "vicine_mg_per_g": None, "convicine_mg_per_g": None,
+              "off_flavour_markers": None}
+FABA_ALIASES = ["faba bean", "fava bean", "broad bean", "Vicia faba"]
 
 
-def _ing(id, name, category, nutrition, physical, rheology, thermal, price, allergens, evidence, provenance, source):
+def _ing(id, name, category, nutrition, physical, rheology, thermal, price, allergens, evidence, provenance, source, synonyms=None):
+    provenance = {**provenance, "faba": provenance.get("faba", MISSING)}
     return {
         "id": id,
         "project_id": None,
@@ -39,6 +47,8 @@ def _ing(id, name, category, nutrition, physical, rheology, thermal, price, alle
         "economics": {"price_per_kg": price, "currency": "EUR", "supplier": "Illustrative placeholder", "date": "2026-10-31", "provenance": ILLUSTRATIVE},
         "evidence": evidence,
         "provenance": provenance,
+        "faba": dict(EMPTY_FABA),
+        "synonyms": synonyms or [],
     }
 
 
@@ -52,17 +62,30 @@ EMPTY_RHEO = {
 def ingredients() -> list[dict]:
     return [
         _ing(
-            "pea-protein-isolate", "Pea protein isolate", "Protein",
-            {"protein": 80.0, "carbohydrate": 3.0, "fat": 6.0, "moisture": 6.0, "fibre": 1.0, "ash": 4.0, "sodium": 1.0},
+            FBPI, "Faba bean protein isolate", "Protein",
+            {"protein": 86.0, "carbohydrate": 1.5, "fat": 2.5, "moisture": 6.0, "fibre": 0.5, "ash": 3.5, "sodium": 0.8},
             {"density_kg_m3": None, "solubility_pct": None, "water_holding_capacity_g_g": None},
             dict(EMPTY_RHEO),
-            {"specific_heat_kj_kgk": None, "conductivity_w_mk": None, "transition_temperatures": "Denaturation temperature not provided - measure by DSC for the lot used."},
-            4.80, ["legume (pea)"],
+            {"specific_heat_kj_kgk": None, "conductivity_w_mk": None, "transition_temperatures": "Denaturation temperatures (legumin/vicilin) not provided - measure by DSC for the lot used."},
+            6.20, ["legume (faba bean)"],
             {"references": [], "measurement_conditions": "Not measured.",
-             "uncertainty": "Commercial isolates commonly vary by several % protein between suppliers/lots.",
+             "uncertainty": "Protein content of commercial isolates varies between suppliers and lots.",
              "validation_status": "Illustrative demonstration values - replace with supplier certificate of analysis."},
             {"nutrition": ILLUSTRATIVE, "physical": MISSING, "rheology": MISSING, "thermal": MISSING},
-            "Yellow pea (Pisum sativum)",
+            "Faba bean (Vicia faba), isolate", ["FBPI"] + [f"{a} protein isolate" for a in FABA_ALIASES],
+        ),
+        _ing(
+            FBPC, "Faba bean protein concentrate", "Protein",
+            {"protein": 60.0, "carbohydrate": 18.0, "fat": 3.0, "moisture": 8.0, "fibre": 6.0, "ash": 5.0, "sodium": 0.1},
+            {"density_kg_m3": None, "solubility_pct": None, "water_holding_capacity_g_g": None},
+            dict(EMPTY_RHEO),
+            {"specific_heat_kj_kgk": None, "conductivity_w_mk": None, "transition_temperatures": "Not provided - measure by DSC (protein denaturation and starch gelatinisation overlap)."},
+            2.90, ["legume (faba bean)"],
+            {"references": [], "measurement_conditions": "Not measured.",
+             "uncertainty": "Concentrates (e.g. air-classified) vary widely in protein, starch and fibre content.",
+             "validation_status": "Illustrative demonstration values - replace with supplier certificate of analysis."},
+            {"nutrition": ILLUSTRATIVE, "physical": MISSING, "rheology": MISSING, "thermal": MISSING},
+            "Faba bean (Vicia faba), concentrate", ["FBPC"] + [f"{a} protein concentrate" for a in FABA_ALIASES],
         ),
         _ing(
             "water", "Water", "Solvent",
@@ -133,10 +156,11 @@ def ingredients() -> list[dict]:
 
 
 BASELINE = {
-    "pea-protein-isolate": 20.0,
-    "water": 45.0,
-    "potato-starch": 25.0,
-    "sunflower-oil": 8.0,
+    FBPI: 12.0,
+    FBPC: 6.0,
+    "water": 57.0,
+    "potato-starch": 8.0,
+    "sunflower-oil": 15.0,
     "xanthan-gum": 0.5,
     "salt": 1.5,
 }
@@ -145,19 +169,19 @@ BASELINE = {
 def demo_project() -> dict:
     return {
         "id": PROJECT_ID,
-        "name": "Affordable Pea Protein Snack",
-        "description": "Develop an affordable, high-protein, pea-based snack dough with suitable processing and extrusion behaviour.",
+        "name": "Faba Bean Plant-Based Sausage",
+        "description": "Develop a plant-based sausage from faba bean protein (isolate and concentrate) with a meat-like texture, suitable processing and printability.",
         "created": "2026-10-31",
-        "active_formulation_id": "baseline-pea-snack",
-        "settings": {"serving_size_g": 30.0, "currency": "EUR", "energy_price_eur_kwh": 0.20},
+        "active_formulation_id": "baseline-faba-sausage",
+        "settings": {"serving_size_g": 50.0, "currency": "EUR", "energy_price_eur_kwh": 0.20},
         "optimizer": {
-            "min_protein": 15.0, "max_cost": 2.20,
+            "min_protein": 12.0, "max_cost": 1.60,
             "bounds": {
-                "pea-protein-isolate": [5.0, 45.0], "water": [30.0, 65.0], "potato-starch": [5.0, 35.0],
-                "sunflower-oil": [2.0, 12.0], "xanthan-gum": [0.1, 1.0], "salt": [0.5, 2.0],
+                FBPI: [0.0, 25.0], FBPC: [0.0, 20.0], "water": [40.0, 65.0], "potato-starch": [2.0, 15.0],
+                "sunflower-oil": [5.0, 20.0], "xanthan-gum": [0.1, 1.0], "salt": [1.0, 2.0],
             },
-            "nutrient_limits": {"fat": [None, 15.0], "moisture": [None, 55.0], "sodium": [None, 0.8]},
-            "note": "Bounds and nutrient limits are demonstration assumptions for a pea snack dough, not validated specifications.",
+            "nutrient_limits": {"fat": [None, 20.0], "moisture": [None, 65.0], "sodium": [None, 0.8]},
+            "note": "Bounds and nutrient limits are demonstration assumptions for a faba bean sausage batter, not validated specifications.",
         },
         "print_settings": None,
     }
@@ -165,9 +189,9 @@ def demo_project() -> dict:
 
 def demo_formulation() -> dict:
     return {
-        "id": "baseline-pea-snack",
+        "id": "baseline-faba-sausage",
         "project_id": PROJECT_ID,
-        "name": "Baseline pea snack dough",
+        "name": "Baseline faba bean sausage batter",
         "origin": "manual",
         "lines": [{"ingredient_id": k, "percent": v, "locked": False} for k, v in BASELINE.items()],
         "notes": "Starting formulation for the hackathon demonstration (illustrative).",
@@ -183,12 +207,12 @@ def demo_process_flow() -> dict:
         ("n5", "extruder", "Cooking extruder", 880, {"barrel_temperature_c": 120.0, "sme_kwh_t": 120.0, "free_volume_l": 1.5, "moisture_loss_pct": 8.0}),
         ("n6", "cooler", "Cooling tunnel", 1100, {"outlet_temperature_c": 25.0, "efficiency": 0.7}),
         ("n7", "conveyor", "Conveyor", 1320, {"length_m": 6.0, "speed_m_min": 4.0, "power_kw": 0.75}),
-        ("n8", "packaging", "Packaging", 1540, {"pack_size_g": 30.0, "power_kw": 1.5}),
+        ("n8", "packaging", "Packaging", 1540, {"pack_size_g": 50.0, "power_kw": 1.5}),
     ]
     return {
         "id": "demo-process-flow",
         "project_id": PROJECT_ID,
-        "name": "Pea snack pilot line",
+        "name": "Faba sausage pilot line",
         "nodes": [{"id": i, "type": "unit", "position": {"x": x, "y": 120 + (60 if k % 2 else 0)}, "data": {"kind": kind, "label": label, "params": p}} for k, (i, kind, label, x, p) in enumerate(nodes)],
         "edges": [{"id": f"e{a}-{b}", "source": a, "target": b} for a, b in zip([n[0] for n in nodes[:-1]], [n[0] for n in nodes[1:]])],
     }

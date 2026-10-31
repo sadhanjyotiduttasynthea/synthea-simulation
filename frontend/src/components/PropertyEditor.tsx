@@ -57,7 +57,7 @@ export function PropertyEditor({ record, catalog, papers, onSave, onDelete, onCa
           </div>
         ))}
       </div>
-      {!compact && <Field label="Formulation / sample composition"><Input className="w-full" value={r.composition ?? ''} onChange={(e) => set('composition', e.target.value)} placeholder="e.g. 15 % w/w PPI in water" /></Field>}
+      {!compact && <Field label="Formulation / sample composition"><Input className="w-full" value={r.composition ?? ''} onChange={(e) => set('composition', e.target.value)} placeholder="e.g. 15 % w/w FBPI in water" /></Field>}
       <Field label="Measurement method"><Input className="w-full" value={r.method ?? ''} onChange={(e) => set('method', e.target.value)} placeholder="e.g. rotational rheometer, cone-plate" /></Field>
       <div className="rounded border border-neutral-200 p-1.5 dark:border-neutral-700">
         <div className="mb-1 text-[11px] font-medium text-neutral-500">Source</div>

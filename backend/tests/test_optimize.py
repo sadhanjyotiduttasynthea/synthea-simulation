@@ -8,8 +8,8 @@ PROJ = seed.demo_project()
 
 
 def demo_req(**kw):
-    r = {"min_protein": 15.0, "max_cost": 2.20, "bounds": PROJ["optimizer"]["bounds"],
-         "nutrient_limits": PROJ["optimizer"]["nutrient_limits"], "baseline": seed.BASELINE, "serving_size_g": 30}
+    r = {"min_protein": 12.0, "max_cost": 1.60, "bounds": PROJ["optimizer"]["bounds"],
+         "nutrient_limits": PROJ["optimizer"]["nutrient_limits"], "baseline": seed.BASELINE, "serving_size_g": 50}
     r.update(kw)
     return r
 
@@ -22,15 +22,18 @@ def test_demo_three_candidates_feasible():
     for c in out["candidates"]:
         assert c["all_satisfied"]
         assert sum(f["percent"] for f in c["formulation"]) == pytest.approx(100, abs=1e-6)
-        assert c["composition"]["protein"] >= 15 - 1e-6
-        assert c["cost_per_kg"] <= 2.20 + 1e-6
+        assert c["composition"]["protein"] >= 12 - 1e-6
+        assert c["cost_per_kg"] <= 1.60 + 1e-6
     lc, bal, hp = out["candidates"]
     assert lc["cost_per_kg"] <= bal["cost_per_kg"] <= hp["cost_per_kg"]
     assert lc["composition"]["protein"] <= bal["composition"]["protein"] <= hp["composition"]["protein"]
     # lowest cost hits protein minimum exactly (protein is the costly component)
-    assert lc["composition"]["protein"] == pytest.approx(15.0, abs=1e-6)
+    assert lc["composition"]["protein"] == pytest.approx(12.0, abs=1e-6)
+    # cheapest protein per kg protein is the concentrate (illustrative prices) -> lowest cost uses FBPC, no FBPI
+    lc_f = {f["ingredient_id"]: f["percent"] for f in lc["formulation"]}
+    assert lc_f["faba-protein-isolate"] == pytest.approx(0, abs=1e-6) and lc_f["faba-protein-concentrate"] > 0
     # highest protein is limited by budget
-    assert hp["cost_per_kg"] == pytest.approx(2.20, abs=1e-6)
+    assert hp["cost_per_kg"] == pytest.approx(1.60, abs=1e-6)
     assert len(out["pareto"]) > 5
 
 
@@ -55,9 +58,10 @@ def test_infeasible_diagnosis():
 
 
 def test_allergen_exclusion():
-    out = optimize.optimise(INGS, demo_req(excluded_allergens=["pea"]))
-    assert any(e["id"] == "pea-protein-isolate" for e in out["excluded"])
-    assert out["status"] == "infeasible"  # no other protein source can reach 15 %
+    out = optimize.optimise(INGS, demo_req(excluded_allergens=["faba"]))
+    excluded = {e["id"] for e in out["excluded"]}
+    assert {"faba-protein-isolate", "faba-protein-concentrate"} <= excluded
+    assert out["status"] == "infeasible"  # no other protein source can reach 12 %
 
 
 def test_processing_requires_data_then_works():

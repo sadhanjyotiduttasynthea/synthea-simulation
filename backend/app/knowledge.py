@@ -329,7 +329,7 @@ STARTER_LIBRARIES = [
     ("lib-processing", "Food Processing Models Library", "Kinetic, transport and process models."),
     ("lib-custom", "Custom Research Library", "Basic food components and project-specific materials."),
 ]
-ING_LIBS = {"pea-protein-isolate": ["lib-plant-protein"], "potato-starch": ["lib-starch"], "xanthan-gum": ["lib-hydrocolloid"],
+ING_LIBS = {"faba-protein-isolate": ["lib-plant-protein"], "faba-protein-concentrate": ["lib-plant-protein"], "potato-starch": ["lib-starch"], "xanthan-gum": ["lib-hydrocolloid"],
             "sunflower-oil": ["lib-lipid"], "water": ["lib-custom", "lib-thermal"], "salt": ["lib-custom"]}
 
 
@@ -367,7 +367,7 @@ def ensure_seeded():
             continue
         save_material({"id": mid, "name": ing["name"], "category": ing.get("category", "Other"), "ingredient_id": ing["id"],
                        "library_ids": ING_LIBS.get(ing["id"], ["lib-custom"]), "tags": list(ing.get("allergens", [])) and ["allergen"],
-                       "synonyms": [], "identity": {"source": ing.get("source"), "supplier": ing.get("supplier")}, "version": 1})
+                       "synonyms": list(ing.get("synonyms") or []), "identity": {"source": ing.get("source"), "supplier": ing.get("supplier")}, "version": 1})
         prov = ing.get("provenance") or {}
         ev = ing.get("evidence") or {}
         refs = ev.get("references") or []

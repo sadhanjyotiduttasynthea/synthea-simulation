@@ -18,7 +18,7 @@ BANNER = "SYNTHETIC TEST DOCUMENT - values invented for software testing; not a 
 def build_sample_pdf() -> bytes:
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=20 * mm, rightMargin=20 * mm, topMargin=22 * mm, bottomMargin=18 * mm,
-                            title="Rheology and thermal behaviour of pea protein isolate dispersions (synthetic test document)",
+                            title="Rheology and thermal behaviour of faba bean protein isolate dispersions (synthetic test document)",
                             author="A. Testauthor; B. Placeholder; C. Example", subject="Synthea Simulation test document")
     ss = getSampleStyleSheet()
     h = ParagraphStyle("t", parent=ss["Title"], fontSize=17, leading=21)
@@ -39,15 +39,15 @@ def build_sample_pdf() -> bytes:
 
     s = [
         Paragraph("Synthea Test Documents, Vol. 1 (2026) 1-3", small),
-        Paragraph("Rheology and thermal behaviour of pea protein isolate dispersions (synthetic test document)", h),
+        Paragraph("Rheology and thermal behaviour of faba bean protein isolate dispersions (synthetic test document)", h),
         Paragraph("A. Testauthor, B. Placeholder, C. Example", body),
         Paragraph("Synthea Simulation Test Laboratory (fictitious). Received 3 March 2026; accepted 1 June 2026. doi:10.0000/synthea.test.0001", small),
         Spacer(1, 6),
         Paragraph("<b>Abstract</b> - This synthetic document mimics the structure of a food-science article so that automated extraction can be tested. "
-                  "Aqueous dispersions of pea protein isolate (PPI) at 10-20 % (w/w) were characterised by steady-shear rheology, differential scanning "
+                  "Aqueous dispersions of faba bean (Vicia faba) protein isolate (FBPI) at 10-20 % (w/w) were characterised by steady-shear rheology, differential scanning "
                   "calorimetry and transient hot-wire measurements. All numbers are invented.", body),
         Paragraph("2. Materials and methods", sec),
-        Paragraph("Pea protein isolate (protein content 82.0 % on a dry basis, moisture content 6.5 %) was dispersed in deionised water at pH 7.0. "
+        Paragraph("Faba bean protein isolate (protein content 82.0 % on a dry basis, moisture content 6.5 %) was dispersed in deionised water at pH 7.0. "
                   "Flow curves were measured with a rotational rheometer (cone-plate, 40 mm) at 25 and 50 &deg;C between 0.1 and 100 s-1. "
                   "Thermal transitions were measured by DSC at a heating rate of 10 K/min. Thermal conductivity was measured with a transient hot-wire probe at 25 &deg;C. "
                   "Water holding capacity was determined by centrifugation (3000 g, 20 min).", body),
@@ -58,7 +58,7 @@ def build_sample_pdf() -> bytes:
         Paragraph("where &tau; is the shear stress (Pa), &tau;<sub>0</sub> the yield stress (Pa), K the consistency index (Pa&middot;s<super>n</super>), "
                   "&gamma;&#775; the shear rate (s-1) and n the flow behaviour index (-). The fitted parameters are given in Table 1; the model is valid for shear rates between 0.1 and 100 s-1.", body),
         PageBreak(),
-        Paragraph("Table 1. Herschel-Bulkley parameters of PPI dispersions (synthetic values).", body),
+        Paragraph("Table 1. Herschel-Bulkley parameters of FBPI dispersions (synthetic values).", body),
     ]
     data = [["Concentration (% w/w)", "Temperature (°C)", "τ0 (Pa)", "K (Pa·s^n)", "n (-)", "R²"],
             ["10", "25", "4.2", "1.8", "0.62", "0.998"],

@@ -1,7 +1,7 @@
 """Demonstration twins built through the real paper workflow on the SYNTHETIC test document.
 
 Steps (each one is the same API path a user takes): import the synthetic PDF, run the local
-extractor, approve its candidates for *Pea protein isolate* (marked as demo approvals),
+extractor, approve its candidates for *Faba bean protein isolate* (marked as demo approvals),
 approve the fitted Herschel-Bulkley model at 15 % w/w / 25 degC and the kinetics model, then
 create four twins. Every value stays traceable to the (clearly synthetic) source page.
 """
@@ -10,7 +10,7 @@ from __future__ import annotations
 from .. import db, extraction
 from . import service
 
-MAT = "mat-pea-protein-isolate"
+MAT = "mat-faba-protein-isolate"
 
 
 def _paper() -> dict:
@@ -60,10 +60,11 @@ def build(project_id: str | None) -> dict:
             edit(t)
         twins.append(service.save(t))
 
-    def bake(t):
+    def cook(t):
         h = t["physics"][0]
-        h["settings"].update({"initial_c": 20.0, "t_end_s": 300.0, "target_c": 85.0, "kinetics": {"enabled": True}})
-        h["bcs"] = {"default": {"type": "convection", "h": 25.0, "ambient": 180.0}, "bottom": {"type": "temperature", "value": 160.0}}  # tray contact
+        # sausage cross-section in a hot-water cooking bath; target = core temperature criterion chosen by the user
+        h["settings"].update({"initial_c": 5.0, "t_end_s": 1800.0, "target_c": 72.0, "kinetics": {"enabled": True}})
+        h["bcs"] = {"default": {"type": "convection", "h": 300.0, "ambient": 80.0}}
 
     def die(t):
         t["physics"][0]["settings"].update({"mode": "flow_rate", "flow_rate_l_h": 6.0})
@@ -77,7 +78,7 @@ def build(project_id: str | None) -> dict:
         d["settings"].update({"initial": 0.0, "t_end_s": 86400.0, "unit": "relative moisture"})
         d["bcs"] = {"default": {"type": "concentration", "value": 1.0}, "bottom": {"type": "impermeable"}}
 
-    mk("Snack bar baking (heat + denaturation)", ["heat"], {"shape": "rectangle", "params": {"width": 40.0, "height": 12.0}, "depth": 80.0}, {"level": "normal"}, edit=bake)
+    mk("Sausage cooking (heat + denaturation)", ["heat"], {"shape": "circle", "params": {"diameter": 24.0}, "depth": 100.0}, {"level": "normal"}, edit=cook)
     mk("Extrusion die (Herschel–Bulkley flow)", ["flow"], {"shape": "circle", "params": {"diameter": 6.0}, "depth": 40.0}, {"level": "fine"}, edit=die)
     mk("Printed overhang under self-weight", ["structural"], {"shape": "polygon", "params": {"points": [[0, 0], [12, 0], [12, 22], [27, 22], [27, 30], [0, 30]]}, "depth": 20.0},
        {"level": "fine"}, edit=overhang)

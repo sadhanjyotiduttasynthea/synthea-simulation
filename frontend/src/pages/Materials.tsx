@@ -30,10 +30,13 @@ const blank = (): Ingredient => ({
   thermal: { specific_heat_kj_kgk: null, conductivity_w_mk: null, transition_temperatures: '' },
   economics: { price_per_kg: null, currency: 'EUR', supplier: '', date: new Date().toISOString().slice(0, 10), provenance: 'illustrative' },
   evidence: { references: [], measurement_conditions: '', uncertainty: '', validation_status: 'Not validated' },
-  provenance: { nutrition: 'missing', physical: 'missing', rheology: 'missing', thermal: 'missing' },
+  provenance: { nutrition: 'missing', physical: 'missing', rheology: 'missing', thermal: 'missing', faba: 'missing' },
+  faba: { ...EMPTY_FABA },
+  synonyms: [],
 })
+const EMPTY_FABA = { legumin_vicilin_ratio: null, denaturation_temperatures_c: null, vicine_mg_per_g: null, convicine_mg_per_g: null, off_flavour_markers: null }
 
-type Tab = 'general' | 'nutrition' | 'physical' | 'rheology' | 'thermal' | 'economics' | 'evidence'
+type Tab = 'general' | 'nutrition' | 'physical' | 'rheology' | 'thermal' | 'faba' | 'economics' | 'evidence'
 
 export default function Materials() {
   const { ingredients, refreshIngredients, toast, setAssistant } = useStore()
@@ -201,7 +204,7 @@ export default function Materials() {
             <div className="space-y-3">
               <Tabs<Tab> value={tab} onChange={setTab} tabs={[
                 { id: 'general', label: 'General' }, { id: 'nutrition', label: 'Nutrition' }, { id: 'physical', label: 'Physical' },
-                { id: 'rheology', label: 'Rheology' }, { id: 'thermal', label: 'Thermal' }, { id: 'economics', label: 'Economics' }, { id: 'evidence', label: 'Evidence' },
+                { id: 'rheology', label: 'Rheology' }, { id: 'thermal', label: 'Thermal' }, { id: 'faba', label: 'Faba bean' }, { id: 'economics', label: 'Economics' }, { id: 'evidence', label: 'Evidence' },
               ]} />
               {tab === 'general' && (
                 <div className="grid grid-cols-2 gap-3">
@@ -241,6 +244,23 @@ export default function Materials() {
                   <Field className="mt-3" label="Relevant transition temperatures (denaturation, gelatinisation, melting) and method"><textarea className={cx(inputCls, 'h-16 w-full py-1')} value={String(draft.thermal.transition_temperatures ?? '')} onChange={(e) => set(['thermal', 'transition_temperatures'], e.target.value)} /></Field>
                 </>
               )}
+              {tab === 'faba' && (() => {
+                const f = { ...EMPTY_FABA, ...(draft.faba ?? {}) }
+                const setF = (k: string, v: unknown) => set(['faba', k], v)
+                return (
+                  <>
+                    {provSelect('faba')}
+                    <Alert>Faba-bean-specific quality data. Empty fields are <b>missing</b>; enter only measured or cited values (e.g. legumin/vicilin by SDS-PAGE densitometry, vicine/convicine by HPLC, denaturation peaks by DSC).</Alert>
+                    <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 @3xl:grid-cols-3">
+                      <Field label="Legumin / vicilin ratio [–]"><NumInput value={f.legumin_vicilin_ratio} onChange={(v) => setF('legumin_vicilin_ratio', v)} placeholder="missing" /></Field>
+                      <Field label="Vicine [mg/g]"><NumInput value={f.vicine_mg_per_g} onChange={(v) => setF('vicine_mg_per_g', v)} placeholder="missing" /></Field>
+                      <Field label="Convicine [mg/g]"><NumInput value={f.convicine_mg_per_g} onChange={(v) => setF('convicine_mg_per_g', v)} placeholder="missing" /></Field>
+                      <Field label="Denaturation temperature(s) [°C] and method" className="col-span-2"><Input value={f.denaturation_temperatures_c ?? ''} placeholder="missing — e.g. vicilin ~ / legumin ~ by DSC" onChange={(e) => setF('denaturation_temperatures_c', e.target.value || null)} /></Field>
+                      <Field label="Off-flavour markers (e.g. hexanal) with amounts and method" className="col-span-3"><Input value={f.off_flavour_markers ?? ''} placeholder="missing" onChange={(e) => setF('off_flavour_markers', e.target.value || null)} /></Field>
+                    </div>
+                  </>
+                )
+              })()}
               {tab === 'economics' && (
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Price per kg"><NumInput value={draft.economics.price_per_kg} onChange={(v) => set(['economics', 'price_per_kg'], v)} placeholder="missing" /></Field>

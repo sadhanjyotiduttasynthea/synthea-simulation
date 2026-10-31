@@ -188,7 +188,7 @@ function MaterialPicker({ c, mats, libs, value, onChange }: { c: Candidate; mats
       </div>
       {isNew && (
         <div className="mt-1 space-y-1">
-          <Input className="w-full" placeholder="Material name, e.g. Pea protein isolate (wet-extracted)" value={value.new_material!.name} onChange={(e) => onChange({ new_material: { ...value.new_material!, name: e.target.value } })} />
+          <Input className="w-full" placeholder="Material name, e.g. Faba bean protein isolate (wet-extracted)" value={value.new_material!.name} onChange={(e) => onChange({ new_material: { ...value.new_material!, name: e.target.value } })} />
           <div className="flex flex-wrap gap-x-3 text-[11px]">{libs.map((l) => <label key={l.id} className="flex items-center gap-1"><input type="checkbox" checked={value.new_material!.library_ids.includes(l.id)} onChange={(e) => onChange({ new_material: { ...value.new_material!, library_ids: e.target.checked ? [...value.new_material!.library_ids, l.id] : value.new_material!.library_ids.filter((x) => x !== l.id) } })} />{l.name}</label>)}</div>
         </div>
       )}

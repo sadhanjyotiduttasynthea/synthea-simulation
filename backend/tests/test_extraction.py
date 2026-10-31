@@ -39,28 +39,28 @@ def test_rule_extraction_values_conditions_and_provenance(paper):
 def test_review_approval_creates_traceable_records_and_models(client, paper):
     p, cands = paper
     v25 = _find(cands, "viscosity", 2.4)
-    r = client.post(f"/api/extractions/{v25['id']}/approve", json={"material_id": "mat-pea-protein-isolate", "review_status": "approved"}).json()
+    r = client.post(f"/api/extractions/{v25['id']}/approve", json={"material_id": "mat-faba-protein-isolate", "review_status": "approved"}).json()
     rec = db.get_doc("properties", r["created"][0]["id"])
     assert rec["review_status"] == "approved" and rec["source"]["paper_id"] == p["id"] and rec["source"]["page"] == 1
     assert rec["source"]["extraction_id"] == v25["id"] and rec["conditions"]["temperature"] == 25.0
     # approving twice is refused
-    assert client.post(f"/api/extractions/{v25['id']}/approve", json={"material_id": "mat-pea-protein-isolate"}).status_code == 409
+    assert client.post(f"/api/extractions/{v25['id']}/approve", json={"material_id": "mat-faba-protein-isolate"}).status_code == 409
     hb = next(c for c in cands if c["kind"] == "equation" and c["equation"]["template"] == "herschel_bulkley")
-    out = client.post(f"/api/extractions/{hb['id']}/approve", json={"material_id": "mat-pea-protein-isolate", "review_status": "approved"}).json()
+    out = client.post(f"/api/extractions/{hb['id']}/approve", json={"material_id": "mat-faba-protein-isolate", "review_status": "approved"}).json()
     assert len(out["created"]) == 4  # one condition-specific model per fitted parameter set
     models = [db.get_doc("sci_models", c["id"]) for c in out["created"]]
     assert all(m["dimension_check"]["ok"] for m in models)
     m15 = next(m for m in models if m["conditions"] == {"concentration": 15.0, "temperature": 25.0})
     assert {p_["symbol"]: p_["value"] for p_ in m15["parameters"]} == {"tau0": 18.5, "K": 9.6, "n": 0.48}
     assert m15["validity"] == {"gamma_dot": [0.1, 100.0]} and m15["source"]["page"] == 2
-    res = client.get("/api/science/resolve", params={"material_id": "mat-pea-protein-isolate", "quantity": "rheology_hb", "temperature": 25, "concentration": 15}).json()
+    res = client.get("/api/science/resolve", params={"material_id": "mat-faba-protein-isolate", "quantity": "rheology_hb", "temperature": 25, "concentration": 15}).json()
     assert res["models"][0]["id"] == m15["id"] and res["models"][0]["exact_conditions"]
 
 
 def test_unreviewed_and_extrapolation_guards(client, paper):
     _, cands = paper
     arr = next(c for c in cands if c["kind"] == "equation" and c["equation"]["template"] == "arrhenius_viscosity")
-    out = client.post(f"/api/extractions/{arr['id']}/approve", json={"material_id": "mat-pea-protein-isolate", "review_status": "reviewed"}).json()
+    out = client.post(f"/api/extractions/{arr['id']}/approve", json={"material_id": "mat-faba-protein-isolate", "review_status": "reviewed"}).json()
     m = db.get_doc("sci_models", out["created"][0]["id"])
     assert {x["symbol"]: x["value"] for x in m["parameters"]} == {"A": 0.00081, "Ea": 19800.0}  # kJ/mol -> J/mol
     assert m["dimension_check"]["ok"] is True
@@ -87,3 +87,17 @@ def test_reject_manual_entry_and_dimension_error(client, paper):
                                         "parameters": [{"symbol": "A", "unit": "Pa*s", "value": 1}, {"symbol": "Ea", "unit": "J", "value": 1}],
                                         "constants": {"R": {"value": 8.314, "unit": "J/(mol*K)"}}})
     assert bad["ok"] is False
+
+
+def test_faba_bean_material_detection(client):
+    p = client.post("/api/papers/sample").json()
+    full = client.get(f"/api/papers/{p['id']}").json()
+    from app import extraction
+    text = " ".join(pg["text"] for pg in full["pages"])
+    known, abbr = extraction.material_candidates(text)
+    assert known[0]["material_id"] == "mat-faba-protein-isolate"
+    assert abbr.get("FBPI", "").lower().endswith("protein isolate")
+    sp = extraction.species_mentions(text)
+    assert sp["Vicia faba"] >= 1 and any(k.startswith("FBPI") for k in sp)
+    d = client.post(f"/api/papers/{p['id']}/summary", json={}).json()
+    assert "Vicia faba" in d["species"]

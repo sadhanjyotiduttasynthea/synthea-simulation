@@ -36,22 +36,22 @@ try {
 
   // 1. open project
   await go('/')
-  check('1. Open project', (await text()).includes('Affordable Pea Protein Snack'.toLowerCase()))
+  check('1. Open project', (await text()).includes('Faba Bean Plant-Based Sausage'.toLowerCase()))
   await shot('01-dashboard')
 
-  // 2. inspect six ingredients
+  // 2. inspect seven ingredients
   await go('/materials')
   const rows = await page.locator('main tbody tr').count()
-  check('2. Inspect six ingredients', rows >= 6, `${rows} rows`)
+  check('2. Inspect seven ingredients', rows >= 7, `${rows} rows`)
   await shot('02-materials')
 
   // 3-4. edit baseline, results update
   await go('/formulation')
   const resultsPanel = () => page.locator('section', { hasText: 'Cost / serving' }).first().innerText()
   const before = await resultsPanel()
-  const pea = page.locator('input[type=number]').first()
-  await pea.fill('25')
-  await pea.press('Enter')
+  const fbpi = page.locator('input[type=number]').first()
+  await fbpi.fill('14')
+  await fbpi.press('Enter')
   await page.waitForTimeout(1200)
   const after = await resultsPanel()
   const sumOk = (await text()).includes('Σ 100.000 %'.toLowerCase())
@@ -59,14 +59,14 @@ try {
   check('4. Nutrition and cost update immediately', before !== after, after.replace(/\s+/g, ' ').slice(0, 60))
   await shot('03-formulation')
 
-  // 5-8. optimiser with protein >= 15 %, cost <= 2.20
+  // 5-8. optimiser with protein >= 12 %, cost <= 1.60
   await go('/optimizer')
   const minP = page.locator('label:has-text("Min protein") input')
   const maxC = page.locator('label:has-text("Max cost") input')
-  await minP.fill('15'); await minP.press('Enter')
-  await maxC.fill('2.2'); await maxC.press('Enter')
-  check('5. Set minimum protein 15 %', (await minP.inputValue()) === '15')
-  check('6. Set maximum cost €2.20/kg', (await maxC.inputValue()) === '2.2')
+  await minP.fill('12'); await minP.press('Enter')
+  await maxC.fill('1.6'); await maxC.press('Enter')
+  check('5. Set minimum protein 12 %', (await minP.inputValue()) === '12')
+  check('6. Set maximum cost €1.60/kg', (await maxC.inputValue()) === '1.6')
   await page.getByRole('button', { name: 'Run optimiser' }).click()
   await page.waitForTimeout(3000)
   const t = await text()
@@ -79,7 +79,7 @@ try {
   await page.getByRole('button', { name: 'Run optimiser' }).click()
   await page.waitForTimeout(2500)
   check('8b. Infeasible constraints are explained', (await text()).includes('Infeasible problem'.toLowerCase()))
-  await minP.fill('15'); await minP.press('Enter')
+  await minP.fill('12'); await minP.press('Enter')
   await page.getByRole('button', { name: 'Run optimiser' }).click()
   await page.waitForTimeout(2500)
 

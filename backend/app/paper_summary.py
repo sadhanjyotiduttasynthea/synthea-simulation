@@ -92,7 +92,7 @@ def local_summary(paper: dict, n_key: int = 8) -> dict:
         "title": meta.get("title"), "citation": meta.get("citation"),
         "key_sentences": [{"page": s["page"], "section": s["section"], "text": s["text"], "properties": s["properties"]} for s in top],
         "topics": [{"property": k, "label": catalog.property_meta(k)["label"], "mentions": c} for k, c in sorted(topics.items(), key=lambda kv: -kv[1])[:12]],
-        "materials": mats, "abbreviations": abbr, "sections": sections, "page_count": len(pages),
+        "materials": mats, "abbreviations": abbr, "species": extraction.species_mentions(" ".join(p.get("text") or "" for p in pages)), "sections": sections, "page_count": len(pages),
         "tables": sum(len(p.get("tables") or []) for p in pages),
         "extractions": {k: sum(1 for e in exts if e.get("status") == k) for k in ("pending", "approved", "rejected")},
         "warnings": (paper.get("warnings") or []) + (["SYNTHETIC TEST DOCUMENT: values are invented."] if paper.get("synthetic_test_document") else []),

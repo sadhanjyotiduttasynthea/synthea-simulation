@@ -2,6 +2,18 @@
 
 Branch: `development` (R7/R8 work on branch `ali` — see `docs/DESIGN_DECISIONS_ALI.md`)
 
+## Change request — faba bean, three modules (branch `ali`)
+
+Changelog (one commit per step; the app builds and runs after each):
+
+| Step | Status | Summary |
+|---|---|---|
+| 1 Faba bean protein replaces pea protein | done | Demo project "Faba Bean Plant-Based Sausage"; FBPI + FBPC ingredients (illustrative values, no citations); faba fields (legumin/vicilin, denaturation temperatures, vicine/convicine, off-flavour markers) default to missing; species/abbreviation aliases; synthetic test PDF, twin demo (sausage cooking), synthetic experiment generator switched; optimiser re-run (README). Pea protein removed everywhere. |
+| 2 Three modules (Materials / Process / Print) | planned | |
+| 3 Synthea Materials | planned | |
+| 4 Synthea Process | planned | |
+| 5 Synthea Print | planned | |
+
 ## Phase 2 — Desktop scientific workstation (in progress)
 
 | Milestone | Status |
@@ -168,7 +180,7 @@ Branch: `development` (R7/R8 work on branch `ali` — see `docs/DESIGN_DECISIONS
 
 ## Current functionality
 All nine sections (Dashboard, Materials Library, Formulation Studio, AI Optimizer, Process Simulator, 3D Printing Lab,
-Experiments, Reports, Settings) are implemented and connected; the *Affordable Pea Protein Snack* demo runs end to end
+Experiments, Reports, Settings) are implemented and connected; the *Faba Bean Plant-Based Sausage* demo runs end to end
 without paid services.
 
 ## Test status

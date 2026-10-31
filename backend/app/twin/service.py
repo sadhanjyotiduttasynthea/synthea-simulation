@@ -55,7 +55,7 @@ def new_physics(kind: str) -> dict:
 def new_twin(project_id: str | None, name: str = "Digital twin", physics: list[str] | None = None, material_id: str | None = None) -> dict:
     return {"id": f"twin-{uuid.uuid4().hex[:10]}", "project_id": project_id, "name": name, "created": _now(),
             "geometry": {"shape": "rectangle", "params": copy.deepcopy(SHAPES["rectangle"]["params"]), "depth": 60.0},
-            "mesh": {"level": "normal"}, "material": {"material_id": material_id or "mat-pea-protein-isolate", "sources": {}},
+            "mesh": {"level": "normal"}, "material": {"material_id": material_id or "mat-faba-protein-isolate", "sources": {}},
             "conditions": {"temperature_c": 25.0}, "physics": [new_physics(k) for k in (physics or ["heat"])]}
 
 
