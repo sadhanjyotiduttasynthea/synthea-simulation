@@ -18,8 +18,14 @@ Branch: `development`
 - **M3 – Calculation engine in UI:** live nutrition, energy, salt equivalent, cost/kg, cost/serving, cost/g protein,
   composition/nutrient/cost charts, Choi & Okos thermal properties, explicit 'not predicted' warnings for viscosity/texture.
 
+- **M4 – AI Optimizer:** objective modes (3-candidate comparison, lowest cost, highest protein, processing compatibility),
+  editable protein/cost/nutrient limits, ingredient bounds & availability, allergen exclusions, uncertainty assumptions;
+  candidate cards vs baseline, Pareto chart with budget line, composition comparison chart and table, constraint
+  satisfaction with binding flags, LP dual sensitivities, Monte-Carlo intervals, infeasibility diagnosis with
+  minimum relaxations; save candidate / open in studio / send to process / send to 3D print.
+
 ## In progress
-- M4 optimiser UI, M5 experiments UI, M6 process simulator, M7 3D printing lab, M8 assistant/reports UI.
+- M5 experiments UI, M6 process simulator, M7 3D printing lab, M8 assistant/reports UI.
 
 ## Outstanding
 - Frontend modules, CI workflow, documentation, end-to-end demo verification.

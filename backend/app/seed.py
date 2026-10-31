@@ -156,7 +156,8 @@ def demo_project() -> dict:
                 "pea-protein-isolate": [5.0, 45.0], "water": [30.0, 65.0], "potato-starch": [5.0, 35.0],
                 "sunflower-oil": [2.0, 12.0], "xanthan-gum": [0.1, 1.0], "salt": [0.5, 2.0],
             },
-            "nutrient_limits": {"fat": [None, 15.0], "sodium": [None, 0.8]},
+            "nutrient_limits": {"fat": [None, 15.0], "moisture": [None, 55.0], "sodium": [None, 0.8]},
+            "note": "Bounds and nutrient limits are demonstration assumptions for a pea snack dough, not validated specifications.",
         },
         "print_settings": None,
     }
