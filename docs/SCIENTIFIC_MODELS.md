@@ -187,3 +187,62 @@ compatibility measure).
 | R3 | Maillard reaction | approved reducing-sugar record, heating | caution (browning, flavour) |
 | R4 | protein–lipid emulsification | approved emulsifying activity / emulsion stability | compatible; otherwise unknown |
 | R5 | salt effect on protein solubility / gelation | approved solubility at a stated salt concentration | caution (check against the formulation salt level) |
+
+## Synthea Process — sausage line, twin link, technical outputs and Texture Class IDs
+
+### Plant-based sausage line units (`backend/app/process.py`)
+| Unit | Model | Inputs that are not predicted |
+|---|---|---|
+| Hydration tank, emulsifier / bowl chopper, mixer | τ = V/Q; shaft power fully dissipated: ΔT = P/(ṁ·cp) (adiabatic upper bound) | degree of hydration, droplet size, fat/water binding (flagged *not predicted*) |
+| Heater, cooking (water bath / steam) | Q = ṁ·cp·ΔT (Choi–Okos cp), energy = Q/η; cooking: product brought to the set medium temperature | cooking loss — only from a measured / literature / illustrative input with that label; otherwise yield is *not computed* |
+| High-moisture extruder (cooling die) | extruder energy balance (SME input, barrel heating) + cooling-die duty Q = ṁ·cp·(T_barrel − T_die) | fibre formation / anisotropy (flagged) |
+| Stuffer / casing | pump power ΔP·Q/η + drive power; sausages per hour = ṁ / portion | stuffing pressure (input); casing mass not in the balance |
+| Cooler / chiller | Q = ṁ·cp·ΔT, electrical power = Q/COP | — |
+
+The default unit settings are illustrative design inputs. Chopper and hydration powers are set so that the adiabatic
+temperature rise stays in the range of chilled batter practice; replace them with plant data.
+
+### Digital Twin study from a heating unit
+"Open Digital Twin study" on a heater, cooker or extruder creates a 2-D heat-transfer twin of the product cross-section
+(circle of the unit's caliber): thermal properties by Choi & Okos from the *formulation* composition (labelled
+calculated), denaturation kinetics from the approved first-order model of the main protein (if one exists), initial
+temperature = unit inlet temperature, convective boundary at the medium temperature with an ILLUSTRATIVE heat-transfer
+coefficient (300 W/(m²·K), water bath — replace with a measured value), end time = hold time, target = the unit's core
+temperature target. After the study is computed, the next process simulation reads the latest study back into the
+unit: core and slowest-point temperature at the end of the hold time, time until every point reaches the target, and
+mean remaining native protein (labelled calculated, with the study id).
+
+### Technical outputs
+Throughput, sausages per hour, product moisture (mass balance), cooking loss (input, with its label), yield (product /
+feed; *not computed* without a cooking-loss value), specific energy and the twin results — each with provenance and basis.
+Runs can be saved and compared side by side; one run is marked as the *optimized product* and is read by Synthea Print.
+
+### Texture Class IDs (`backend/app/texture.py`)
+Classes are a platform CONVENTION with ILLUSTRATIVE ranges (stored in the settings, editable via `PUT /api/texture/classes`);
+they must be calibrated with reference products measured by the same protocol.
+
+Protocol: TPA double compression to 50 % strain, cylindrical sample Ø 20 mm × 20 mm cut from the cooked product,
+crosshead 1 mm/s, 5 s between cycles, 20 °C. Gumminess = hardness × cohesiveness; chewiness = gumminess × springiness.
+
+| Class | Description | Hardness [N] (defines the class) | Typical springiness [–] | Typical cohesiveness [–] | Typical resilience [–] |
+|---|---|---|---|---|---|
+| TX-01 | soft paste | 0 – 5 | 0 – 0.5 | 0 – 0.4 | – |
+| TX-02 | soft gel | 5 – 15 | 0.4 – 0.8 | 0.3 – 0.6 | – |
+| TX-03 | tender, sliceable | 15 – 30 | 0.6 – 0.9 | 0.4 – 0.7 | – |
+| TX-04 | firm, sausage-like | 30 – 50 | 0.7 – 0.95 | 0.45 – 0.8 | 0.2 – 0.5 |
+| TX-05 | firm, fibrous, meat-like | ≥ 50 | 0.8 – 1.0 | 0.5 – 0.85 | 0.25 – 0.6 |
+
+Hardness bands are contiguous; the secondary parameters are reported as typical / atypical but do not change the class.
+Fibrousness (anisotropy) is not part of TPA and is not assessed by the class.
+
+Assignment (first available source wins):
+1. **Measured** — project experiments of type *measured* with the same composition (each ingredient within ±0.5 %):
+   mean hardness of the replicates, band = mean ± 2 SD.
+2. **Library records** — approved TPA records (hardness, springiness, …) of the product material linked to the
+   formulation: band = value ± 2 × reported SD.
+3. **Predicted** — Gaussian-process surrogate of hardness trained on recorded experiments (≥ 6): 95 % band
+   (log-space for log-transformed responses), LOO Q² and extrapolation distance reported; synthetic training data flagged.
+
+The class is every class whose hardness band intersects the uncertainty band: one class, or a range such as
+"TX-03 to TX-04". With no data: "unclassified — needs texture data". Ingredient-level texture data are never averaged
+into a product class.

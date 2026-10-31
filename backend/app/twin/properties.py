@@ -159,6 +159,20 @@ def resolve_quantity(material_id: str | None, q: str, cond: dict, choice: dict |
                     "record_ids": [k[0]["id"], ea[0]["id"]], "source": k[0].get("source"), "flags": []}
         return {**base, "message": "No approved first-order kinetics model, or approved rate-constant (with temperature) and activation-energy records."}
 
+    if mode == "formulation_choi_okos" and q in THERMAL_CO:
+        from .. import db as _db
+        from ..science import nutrition
+        ings = {i["id"]: i for i in _db.list_docs("ingredients")}
+        lines = [nutrition.FormulationLine(ings[l["ingredient_id"]], float(l["percent"])) for l in choice.get("lines") or [] if l["ingredient_id"] in ings and float(l["percent"]) > 0]
+        if not lines:
+            return {**base, "message": "No formulation lines for the Choi–Okos calculation"}
+        comp = nutrition.composition(lines).composition
+        r = thermal.properties(comp, T)
+        v = r[THERMAL_CO[q]] * (1000.0 if q == "specific_heat" else 1.0)
+        provs = sorted({(ings[l.ingredient["id"]].get("provenance") or {}).get("nutrition", "missing") for l in lines})
+        return {**base, "origin": "calculated", "method": f"Choi & Okos (1986) at {T:.4g} °C from the formulation composition ({choice.get('formulation_name') or 'formulation'})",
+                "value": v, "unit": catalog.property_meta(q).get("unit"), "inputs": {"composition": comp},
+                "flags": [f"composition from ingredient-table values ({', '.join(provs)})"] + r.get("warnings", [])}
     if mode == "choi_okos" and q in THERMAL_CO:
         comp, used = _composition(material_id)
         if not comp:

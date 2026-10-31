@@ -199,15 +199,15 @@ def demo_formulation() -> dict:
 
 
 def demo_process_flow() -> dict:
+    # plant-based sausage line; all unit settings are illustrative design inputs
     nodes = [
-        ("n1", "storage", "Ingredient storage", 0, {"mass_flow_kg_h": 120.0, "temperature_c": 20.0}),
-        ("n2", "mixer", "Batch/continuous mixer", 220, {"volume_l": 60.0, "fill_fraction": 0.6, "power_kw": 3.0}),
-        ("n3", "pump", "Dough pump", 440, {"pressure_rise_bar": 6.0, "efficiency": 0.55}),
-        ("n4", "heater", "Pre-heater", 660, {"outlet_temperature_c": 60.0, "efficiency": 0.85}),
-        ("n5", "extruder", "Cooking extruder", 880, {"barrel_temperature_c": 120.0, "sme_kwh_t": 120.0, "free_volume_l": 1.5, "moisture_loss_pct": 8.0}),
-        ("n6", "cooler", "Cooling tunnel", 1100, {"outlet_temperature_c": 25.0, "efficiency": 0.7}),
-        ("n7", "conveyor", "Conveyor", 1320, {"length_m": 6.0, "speed_m_min": 4.0, "power_kw": 0.75}),
-        ("n8", "packaging", "Packaging", 1540, {"pack_size_g": 50.0, "power_kw": 1.5}),
+        ("n1", "storage", "Ingredient storage", 0, {"mass_flow_kg_h": 120.0, "temperature_c": 8.0}),
+        ("n2", "hydration", "Protein hydration", 220, {"volume_l": 200.0, "fill_fraction": 0.7, "power_kw": 0.3}),
+        ("n3", "chopper", "Emulsifier / bowl chopper", 440, {"volume_l": 60.0, "fill_fraction": 0.5, "power_kw": 1.2}),
+        ("n4", "stuffer", "Stuffer / casing", 660, {"pressure_rise_bar": 15.0, "efficiency": 0.5, "portion_g": 50.0, "power_kw": 2.0, "caliber_mm": 24.0}),
+        ("n5", "cooker", "Cooking (water bath)", 880, {"product_temperature_c": 75.0, "core_target_c": 72.0, "hold_time_min": 30.0, "efficiency": 0.8, "caliber_mm": 24.0}),
+        ("n6", "chiller", "Chiller", 1100, {"outlet_temperature_c": 4.0, "cop": 2.5}),
+        ("n7", "packaging", "Packaging", 1320, {"pack_size_g": 250.0, "power_kw": 1.5}),
     ]
     return {
         "id": "demo-process-flow",

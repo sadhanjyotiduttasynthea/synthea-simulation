@@ -108,25 +108,36 @@ def test_process_demo_mass_energy_balance():
     comp = nutrition.composition([nutrition.FormulationLine({i["id"]: i for i in INGS}[k], v) for k, v in seed.BASELINE.items()]).composition
     r = process.simulate(flow, comp, 1.45, 0.2)
     s = r["summary"]
-    assert s["feed_kg_h"] == 120
-    assert abs(s["mass_balance_error_kg_h"]) < 1e-9
-    assert s["product_kg_h"] == pytest.approx(120 - s["evaporated_kg_h"])
-    assert s["evaporated_kg_h"] == pytest.approx(0.08 * 120)
-    heater = next(u for u in r["units"] if u["kind"] == "heater")
-    o = heater["outputs"]
-    assert o["heat_duty_kw"] == pytest.approx(120 / 3600 * o["specific_heat_kj_kgk"] * (60 - o["inlet_temperature_c"]), rel=0.02)
-    assert any(u["unsupported"] for u in r["units"])  # no rheology -> pressure unsupported
+    assert [u["kind"] for u in r["units"]] == ["storage", "hydration", "chopper", "stuffer", "cooker", "chiller", "packaging"]
+    assert s["feed_kg_h"] == 120 and abs(s["mass_balance_error_kg_h"]) < 1e-9
+    assert s["evaporated_kg_h"] == 0 and s["cooking_loss_kg_h"] == 0 and s["product_kg_h"] == pytest.approx(120)
+    cooker = next(u for u in r["units"] if u["kind"] == "cooker")
+    o = cooker["outputs"]
+    assert o["heat_duty_kw"] == pytest.approx(120 / 3600 * o["specific_heat_kj_kgk"] * (75 - o["inlet_temperature_c"]), rel=0.02)
+    assert any("Cooking loss" in u for u in cooker["unsupported"])  # not invented
+    tech = {t["key"]: t for t in s["technical"]}
+    assert tech["yield_pct"]["value"] is None and tech["yield_pct"]["provenance"] == "missing" and tech["yield_pct"]["needs"]
+    assert tech["cooking_loss_pct"]["provenance"] == "missing"
+    assert tech["units_per_hour"]["value"] == pytest.approx(120 * 1000 / 50)
+    assert tech["product_moisture_pct"]["value"] == pytest.approx(comp["moisture"], rel=1e-9)
+    # with a measured cooking loss the yield and moisture follow from the mass balance
+    flow["nodes"][4]["data"]["params"].update({"cooking_loss_pct": 5.0, "cooking_loss_provenance": "measured"})
+    r = process.simulate(flow, comp, 1.45, 0.2)
+    tech = {t["key"]: t for t in r["summary"]["technical"]}
+    assert tech["yield_pct"]["value"] == pytest.approx(95.0) and tech["cooking_loss_pct"]["provenance"] == "measured"
+    assert abs(r["summary"]["mass_balance_error_kg_h"]) < 1e-9
+    assert tech["product_moisture_pct"]["value"] == pytest.approx((comp["moisture"] / 100 * 120 - 6) / 114 * 100)
 
 
 def test_process_with_rheology_and_cycle_error():
     flow = seed.demo_process_flow()
     flow["nodes"].append({"id": "p", "data": {"kind": "pipe", "label": "Pipe", "params": {"length_m": 3, "diameter_mm": 25}}})
-    flow["edges"] = [e for e in flow["edges"] if e["target"] != "n4"] + [{"source": "n3", "target": "p"}, {"source": "p", "target": "n4"}]
+    flow["edges"] = [e for e in flow["edges"] if e["target"] != "n4"] + [{"source": "n3", "target": "p"}, {"source": "p", "target": "n4"}]  # pipe before the stuffer
     r = process.simulate(flow, {"moisture": 50, "protein": 16, "carbohydrate": 21, "fat": 9, "ash": 2, "fibre": 1}, 1.4, 0.2,
                          {"yield_stress_pa": 40, "consistency_index_pa_sn": 25, "flow_behaviour_index": 0.45})
     pipe = next(u for u in r["units"] if u["kind"] == "pipe")
     assert pipe["outputs"]["pressure_drop_bar"] > 0
-    flow["edges"].append({"source": "n8", "target": "n1"})
+    flow["edges"].append({"source": "n7", "target": "n1"})
     with pytest.raises(ValueError):
         process.simulate(flow, {"moisture": 100}, 1, 0.2)
 

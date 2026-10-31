@@ -3,7 +3,9 @@ import {
   type Connection, type Edge, type Node, type NodeProps,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { ArrowRightLeft, Container, Cog, Copy, Flame, Gauge, Package, Play, Save, Snowflake, Trash2, Waves, Wind, Workflow } from 'lucide-react'
+import { ArrowRightLeft, Beef, Blend, Boxes, Container, Cog, Copy, CookingPot, Droplets, Flame, Gauge, Package, Play, Save, Snowflake, Thermometer, Trash2, Waves, Wind, Workflow } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { ProcessTexture, ProcessRuns, TechnicalOutputs, type TechRow, type TextureResult } from '../components/ProcessExtras'
 import { useCallback, useEffect, useMemo, useState, type DragEvent } from 'react'
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Alert, Button, Field, Input, KV, NumInput, PageHeader, Panel, Prov, Select, Spinner, Stat, cx } from '../components/ui'
@@ -11,23 +13,27 @@ import { api } from '../lib/api'
 import { eur, fmt, fmtSci } from '../lib/format'
 import { useActiveFormulation, useResults, useStore } from '../store'
 
-type UnitData = { kind: string; label: string; params: Record<string, number>; result?: UnitResult }
+type UnitData = { kind: string; label: string; params: Record<string, number | string | null>; result?: UnitResult; twin_id?: string }
 type UnitNode = Node<UnitData, 'unit'>
-interface UnitResult { id: string; kind: string; label: string; outputs: Record<string, number | null>; warnings: string[]; unsupported: string[] }
+interface TwinRes { twin_id: string; study_id: string | null; provenance: string; note?: string; end_time_s?: number; core_temperature_c?: number; coldest_temperature_c?: number; time_all_cells_reached_target_s?: number | null; target_c?: number | null; native_fraction_mean?: number | null; study_created?: string; warning?: string }
+interface UnitResult { id: string; kind: string; label: string; outputs: Record<string, number | null>; warnings: string[]; unsupported: string[]; twin?: TwinRes }
 interface SimResult {
   order: string[]; units: UnitResult[]; warnings: string[]; disclaimer: string; rheology_available: boolean; formulation_cost_per_kg: number | null
-  summary: Record<string, number | null | string>
+  summary: Record<string, number | null | string> & { technical?: TechRow[] }
 }
 interface Flow { id?: string; project_id: string; name: string; nodes: UnitNode[]; edges: Edge[] }
 
-const ICONS: Record<string, typeof Cog> = { storage: Container, mixer: Cog, heater: Flame, cooler: Snowflake, pump: Gauge, pipe: ArrowRightLeft, extruder: Wind, conveyor: Waves, packaging: Package }
+const ICONS: Record<string, typeof Cog> = { storage: Container, mixer: Cog, heater: Flame, cooler: Snowflake, pump: Gauge, pipe: ArrowRightLeft, extruder: Wind, conveyor: Waves, packaging: Package,
+  hydration: Droplets, chopper: Blend, hme: Beef, stuffer: Boxes, cooker: CookingPot, chiller: Thermometer }
+const HEATING = ['heater', 'cooker', 'hme', 'extruder']
 
 const PARAM_LABELS: Record<string, string> = {
   mass_flow_kg_h: 'Feed mass flow [kg/h]', temperature_c: 'Feed temperature [°C]', volume_l: 'Volume [L]', fill_fraction: 'Fill fraction [–]', power_kw: 'Power [kW]',
   outlet_temperature_c: 'Outlet temperature [°C]', efficiency: 'Efficiency [–]', cop: 'Coefficient of performance [–]', pressure_rise_bar: 'Pressure rise [bar]',
   length_m: 'Length [m]', diameter_mm: 'Inner diameter [mm]', barrel_temperature_c: 'Barrel temperature [°C]', sme_kwh_t: 'Specific mechanical energy [kWh/t] (input)',
   free_volume_l: 'Free barrel volume [L]', moisture_loss_pct: 'Moisture flash-off [% of feed] (input)', die_diameter_mm: 'Die diameter [mm]', die_length_mm: 'Die length [mm]', die_count: 'Number of die holes',
-  speed_m_min: 'Belt speed [m/min]', pack_size_g: 'Pack size [g]',
+  speed_m_min: 'Belt speed [m/min]', pack_size_g: 'Pack size [g]', cooling_die_outlet_c: 'Cooling-die outlet [°C]', portion_g: 'Portion (sausage) [g]', caliber_mm: 'Caliber [mm]',
+  product_temperature_c: 'Bath / medium temperature [°C]', core_target_c: 'Core temperature target [°C] (specification)', hold_time_min: 'Hold time [min]',
 }
 const OUT_LABELS: Record<string, [string, string, number?]> = {
   inlet_mass_flow_kg_h: ['Inlet mass flow', 'kg/h'], outlet_mass_flow_kg_h: ['Outlet mass flow', 'kg/h'], inlet_temperature_c: ['Inlet temperature', '°C', 1], outlet_temperature_c: ['Outlet temperature', '°C', 1],
@@ -38,6 +44,7 @@ const OUT_LABELS: Record<string, [string, string, number?]> = {
   barrel_heating_needed_kw: ['Barrel heating needed', 'kW', 2], moisture_flash_off_kg_h: ['Moisture flash-off', 'kg/h', 2], latent_heat_flash_kw: ['Latent heat of flash-off', 'kW', 2],
   die_pressure_drop_bar: ['Die pressure drop', 'bar', 2], die_wall_shear_rate_1_s: ['Die wall shear rate', '1/s', 0], residence_time_s: ['Residence time', 's', 0], packs_per_hour: ['Packs per hour', '1/h', 0],
   electrical_power_kw: ['Electrical power', 'kW', 2], temperature_change_k: ['Temperature change', 'K', 1], mass_change_kg_h: ['Mass change', 'kg/h', 2],
+  cooking_loss_kg_h: ['Cooking loss', 'kg/h', 2], units_per_hour: ['Sausages per hour', '1/h', 0], hold_time_min: ['Hold time', 'min', 0], cooling_die_heat_removed_kw: ['Cooling-die heat removed', 'kW', 2],
 }
 
 function UnitNodeView({ data, selected }: NodeProps<UnitNode>) {
@@ -136,7 +143,7 @@ function ProcessInner() {
 
   const toFlow = (): Flow => ({
     id: flowId, project_id: project!.id, name: flowName,
-    nodes: nodes.map((n) => ({ id: n.id, type: 'unit', position: n.position, data: { kind: n.data.kind, label: n.data.label, params: n.data.params } })),
+    nodes: nodes.map((n) => ({ id: n.id, type: 'unit', position: n.position, data: { kind: n.data.kind, label: n.data.label, params: n.data.params, ...(n.data.twin_id ? { twin_id: n.data.twin_id } : {}) } })),
     edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target })),
   })
 
@@ -152,6 +159,7 @@ function ProcessInner() {
     setFlowId(s.id)
     setFlowName(s.name)
     toast(asNew ? 'Flow duplicated' : 'Process flow saved', 'success')
+    return s
   }
   const deleteFlow = async () => {
     if (!flowId || !confirm(`Delete flow "${flowName}"?`)) return
@@ -180,6 +188,18 @@ function ProcessInner() {
     }
   }
 
+  const nav = useNavigate()
+  const [texture, setTexture] = useState<TextureResult | null>(null)
+  const openTwin = async () => {
+    if (!sel || !form) return
+    const fid = (await saveFlow(false)).id  // the twin is attached to the saved flow
+    try {
+      const r = await api.post<{ twin: { id: string }; kinetics_enabled: boolean }>('/api/process/twin', { flow_id: fid, node_id: sel.id, formulation_id: form.id, inlet_temperature_c: sel.data.result?.outputs.inlet_temperature_c ?? null })
+      setNodes((ns) => ns.map((n) => (n.id === sel.id ? { ...n, data: { ...n.data, twin_id: r.twin.id } } : n)))
+      toast(`Digital twin created${r.kinetics_enabled ? ' with denaturation kinetics' : ' (no approved kinetics model — heat transfer only)'}`, 'success')
+      nav(`/twin?twin=${r.twin.id}&tab=study`)
+    } catch (e) { toast((e as Error).message, 'error') }
+  }
   const sel = nodes.find((n) => n.id === selected)
   const updateSel = (patch: Partial<UnitData>) => setNodes((ns) => ns.map((n) => (n.id === selected ? { ...n, data: { ...n.data, ...patch } } : n)))
   const s = sim?.summary
@@ -310,6 +330,9 @@ function ProcessInner() {
                   </table>
                 </div>
               </Panel>
+              {s.technical && <TechnicalOutputs rows={s.technical} />}
+              {form && project && <ProcessTexture projectId={project.id} formulationId={form.id} onResult={setTexture} />}
+              {project && <ProcessRuns projectId={project.id} current={{ flow_id: flowId, flow_name: flowName, formulation_id: form?.id, formulation_name: form?.name, summary: s, texture, twins: (sim as unknown as { twins?: unknown[] }).twins }} />}
               <p className="text-[10px] text-neutral-500">{sim.disclaimer} Excludes: {s.excludes as string}. Mass-balance closure error: {fmtSci(s.mass_balance_error_kg_h as number)} kg/h.</p>
             </>
           )}
@@ -322,9 +345,31 @@ function ProcessInner() {
                 <div className="space-y-2">
                   <Field label="Label"><Input value={sel.data.label} onChange={(e) => updateSel({ label: e.target.value })} /></Field>
                   <div className="text-[10px] uppercase tracking-wide text-neutral-500">Type: {sel.data.kind}</div>
-                  {Object.entries(sel.data.params).map(([k, v]) => (
-                    <Field key={k} label={PARAM_LABELS[k] ?? k}><NumInput value={v} allowNull={false} onChange={(nv) => updateSel({ params: { ...sel.data.params, [k]: nv ?? 0 } })} /></Field>
+                  {Object.entries(sel.data.params).filter(([k, v]) => typeof v === 'number' && k !== 'cooking_loss_pct').map(([k, v]) => (
+                    <Field key={k} label={PARAM_LABELS[k] ?? k}><NumInput value={v as number} allowNull={false} onChange={(nv) => updateSel({ params: { ...sel.data.params, [k]: nv ?? 0 } })} /></Field>
                   ))}
+                  {sel.data.kind === 'cooker' && (
+                    <div className="rounded border border-neutral-200 p-2 dark:border-white/10">
+                      <Field label="Cooking loss [% of product] (product property)" hint="Leave empty unless measured or sourced — yield is then 'not computed'."><NumInput value={(sel.data.params.cooking_loss_pct as number | null) ?? null} onChange={(nv) => updateSel({ params: { ...sel.data.params, cooking_loss_pct: nv } })} placeholder="missing" /></Field>
+                      <Field label="Provenance of the cooking loss"><Select value={(sel.data.params.cooking_loss_provenance as string) ?? 'measured'} onChange={(e) => updateSel({ params: { ...sel.data.params, cooking_loss_provenance: e.target.value } })}>{['measured', 'literature', 'illustrative'].map((p) => <option key={p}>{p}</option>)}</Select></Field>
+                    </div>
+                  )}
+                  {HEATING.includes(sel.data.kind) && (
+                    <div className="rounded border border-cyan-300 p-2 dark:border-cyan-800">
+                      <div className="mb-1 text-[11px] font-semibold">Digital Twin (heat transfer + denaturation)</div>
+                      {sel.data.twin_id ? (
+                        <>
+                          <Button size="sm" onClick={() => nav(`/twin?twin=${sel.data.twin_id}&tab=study`)}>Open twin study</Button>
+                          <p className="mt-1 text-[10.5px] text-neutral-500">Compute the study, then run the simulation again: the core temperature, time to target and remaining native protein appear in the unit results.</p>
+                        </>
+                      ) : (
+                        <>
+                          <Button size="sm" onClick={openTwin} disabled={!form}>Open Digital Twin study</Button>
+                          <p className="mt-1 text-[10.5px] text-neutral-500">Creates a 2-D twin of the product cross-section (caliber), with thermal properties from the formulation (Choi–Okos) and kinetics from approved library models.</p>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </Panel>
               {sel.data.result && (
@@ -333,6 +378,18 @@ function ProcessInner() {
                     const [l, u, d] = OUT_LABELS[k] ?? [k, '', 3]
                     return [l, `${fmt(v as number, d ?? 2)} ${u}`]
                   })} />
+                  {sel.data.result.twin && (
+                    <div className="mt-2 rounded border border-cyan-300 p-2 text-xs dark:border-cyan-800">
+                      <div className="mb-1 flex items-center gap-1 font-semibold">Digital Twin results <Prov kind={sel.data.result.twin.provenance} /></div>
+                      {sel.data.result.twin.study_id ? <KV rows={[
+                        ['Study', `${sel.data.result.twin.study_id} (${new Date(sel.data.result.twin.study_created ?? '').toLocaleString()})`],
+                        [`Core temperature after ${fmt(sel.data.result.twin.end_time_s, 0)} s`, `${fmt(sel.data.result.twin.core_temperature_c, 1)} °C`],
+                        ['Slowest point', `${fmt(sel.data.result.twin.coldest_temperature_c, 1)} °C`],
+                        [`Time until every point ≥ ${sel.data.result.twin.target_c ?? '–'} °C`, sel.data.result.twin.time_all_cells_reached_target_s == null ? 'not reached' : `${fmt(sel.data.result.twin.time_all_cells_reached_target_s, 0)} s`],
+                        ['Remaining native protein (mean)', sel.data.result.twin.native_fraction_mean == null ? 'kinetics not available' : fmt(sel.data.result.twin.native_fraction_mean, 3)],
+                      ]} /> : <p className="text-neutral-500">{sel.data.result.twin.note}</p>}
+                    </div>
+                  )}
                   <div className="mt-2 space-y-1">
                     {sel.data.result.unsupported.map((w, i) => <Alert key={i} kind="warn" title="Not supported">{w}</Alert>)}
                     {sel.data.result.warnings.map((w, i) => <Alert key={i}>{w}</Alert>)}

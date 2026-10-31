@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import assistant, db, experiments, knowledge, optimize, printing, process, reports, routes_formulation, routes_knowledge, routes_molecules, routes_papers, routes_science, routes_twin, routes_workspace, seed
+from . import assistant, db, experiments, knowledge, optimize, printing, process, reports, routes_formulation, routes_knowledge, routes_molecules, routes_process, routes_papers, routes_science, routes_twin, routes_workspace, seed
 from .science import expression, nutrition, registry, thermal
 
 app = FastAPI(title="Synthea Simulation API", version="2.0.0")
@@ -41,6 +41,7 @@ app.include_router(routes_science.router)
 app.include_router(routes_twin.router)
 app.include_router(routes_molecules.router)
 app.include_router(routes_formulation.router)
+app.include_router(routes_process.router)
 
 
 @app.exception_handler(ValueError)
@@ -147,8 +148,11 @@ def get_project(pid: str):
 
 @app.put("/api/projects/{pid}")
 def update_project(pid: str, doc: dict = Body(...)):
-    _require("projects", pid)
+    cur = _require("projects", pid)
     doc["id"] = pid
+    # server-managed fields are kept when a client sends an older copy of the project
+    if "optimized_product" not in doc and (cur or {}).get("optimized_product"):
+        doc["optimized_product"] = cur["optimized_product"]
     return db.put_doc("projects", doc)
 
 
@@ -318,7 +322,7 @@ def delete_experiment(eid: str):
 
 
 PROC_COLS = ["temperature_c", "mixing_speed_rpm", "mixing_time_min"]
-MEAS_COLS = ["viscosity_pa_s", "viscosity_shear_rate_1_s", "hardness_n", "extrusion_behaviour", "shape_retention_pct"]
+MEAS_COLS = ["viscosity_pa_s", "viscosity_shear_rate_1_s", "hardness_n", "springiness", "cohesiveness", "chewiness_n", "gumminess_n", "resilience", "extrusion_behaviour", "shape_retention_pct"]
 
 
 @app.get("/api/experiments/export-csv")

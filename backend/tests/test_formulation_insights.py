@@ -20,7 +20,7 @@ def test_profile_without_evidence_is_not_predicted(client):
     tech = r["attributes"]["technical"]
     assert tech[0]["label"] == "calculated" and "protein" in tech[0]["text"]
     assert any(s["label"] == "not_predicted" and "denaturation temperature" in s["text"] for s in tech)
-    assert r["process_temperature"]["value"] == 120.0 and "process flow" in r["process_temperature"]["source"]  # demo extruder barrel
+    assert r["process_temperature"]["value"] == 75.0 and "Cooking" in r["process_temperature"]["source"]  # demo cooker set temperature
 
 
 def test_profile_and_interactions_use_approved_records(client):
