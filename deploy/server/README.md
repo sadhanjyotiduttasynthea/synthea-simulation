@@ -37,7 +37,7 @@ apt-get update && apt-get install -y git
 ```
 
 ```bash
-git clone https://github.com/sadhanjyotiduttasynthea/synthea-simulation.git /opt/synthea && cd /opt/synthea/deploy/server
+git clone -b development https://github.com/sadhanjyotiduttasynthea/synthea-simulation.git /opt/synthea && cd /opt/synthea/deploy/server
 ```
 
 ```bash
