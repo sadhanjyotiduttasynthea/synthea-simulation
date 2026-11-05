@@ -11,3 +11,7 @@ e2e/screenshots
 .env
 backups
 *.command
+**/.env
+**/.env.*
+**/backups
+deploy

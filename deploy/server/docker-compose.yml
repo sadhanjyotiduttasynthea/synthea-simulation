@@ -1,0 +1,34 @@
+# Synthea Simulation on an always-on cloud server, at https://<your subdomain> (e.g. simulation.syntheatech.com).
+# Started by install.sh, which creates .env (domain, e-mail, team password, secret). Never commit .env.
+name: synthea-server
+services:
+  synthea:
+    build: ../..
+    image: synthea-simulation:server
+    restart: unless-stopped               # starts again after a crash or a server reboot
+    env_file: .env                        # SYNTHEA_PASSWORD, SYNTHEA_SECRET, optional ANTHROPIC_API_KEY
+    environment:
+      SYNTHEA_DATA_DIR: /data
+    volumes:
+      - synthea-data:/data                # database + uploaded PDFs, kept across restarts and updates
+    expose:
+      - "8000"                            # reachable only by Caddy, never directly from the internet
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [synthea]
+    env_file: .env                        # SITE_DOMAIN, ACME_EMAIL
+    ports:
+      - "80:80"                           # needed once for the HTTPS certificate, then redirects to https
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data                  # HTTPS certificates
+      - caddy-config:/config
+
+volumes:
+  synthea-data:
+  caddy-data:
+  caddy-config:

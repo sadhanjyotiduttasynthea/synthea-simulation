@@ -70,6 +70,12 @@ npm run dev
 The SQLite database is created automatically at `backend/data/synthea.db` and seeded with the demo project. Use
 **Settings → Data → Reset demo data** to restore it.
 
+### Always-on server at your own address (e.g. simulation.syntheatech.com)
+
+Rent a small cloud server, point a subdomain at it, and run `deploy/server/install.sh`. You get automatic HTTPS
+(Caddy), the team-password sign-in, automatic restarts and nightly backups, and your own computer can stay off.
+Step-by-step guide: [`deploy/server/README.md`](deploy/server/README.md).
+
 ### Hosting on a Mac for the team (same Wi-Fi)
 
 Double-click **`Start-Synthea.command`** (Docker Desktop required): it builds and starts the app in Docker, asks once for

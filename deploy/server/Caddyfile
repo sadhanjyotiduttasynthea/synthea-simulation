@@ -1,0 +1,22 @@
+# Caddy obtains and renews a free HTTPS certificate (Let's Encrypt) for SITE_DOMAIN automatically.
+{
+	email {$ACME_EMAIL}
+}
+
+{$SITE_DOMAIN} {
+	encode zstd gzip
+	request_body {
+		max_size 200MB
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+		-Server
+	}
+	reverse_proxy synthea:8000 {
+		transport http {
+			read_timeout 10m
+		}
+	}
+}
